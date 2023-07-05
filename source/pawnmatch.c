@@ -15,6 +15,137 @@ typedef struct
   int stdout;
 } Engine;
 
+typedef struct
+{
+  char name[64];
+} Player;
+
+bool write_engine(Engine engine, const char string[])
+{
+  char writeChar;
+  for(int index = 0; index < strlen(string); index++)
+  {
+    writeChar = string[index];
+
+    if(writeChar == '\n' || writeChar == '\0') break;
+
+    if(write(engine.stdin, &writeChar, sizeof(writeChar)) < 1) return false;
+  }
+
+  writeChar = '\n';
+  if(write(engine.stdin, &writeChar, sizeof(writeChar)) < 1) return false;
+
+  return true;
+}
+
+bool read_engine(char* string, Engine engine)
+{
+  char readChar;
+  int index = 0;
+  int readReturn;
+
+  while((readReturn = read(engine.stdout, &readChar, sizeof(readChar))) == 1)
+  {
+    if(readChar == '\n' || readChar == '\0') break;
+
+    string[index++] = readChar;
+  }
+  return (readReturn != -1 && index > 0);
+}
+
+bool engine_connect(Engine* engine)
+{
+  /*
+  if(!write_engine(*engine, "uci"))
+  {
+    printf("Could not write to engine\n");
+    return false;
+  }
+
+  char readString[1024];
+  
+  do 
+  {
+    memset(readString, 0, sizeof(readString));
+
+    if(!read_engine(readString, *engine))
+    {
+      printf("Can not read from engine\n");
+      return false;
+    }
+    
+    printf("Engine: (%s)\n", readString);
+  }
+  while(strcmp(readString, "uciok"));
+
+  if(!write_engine(*engine, "ucinewgame"))
+  {
+    printf("Could not write to engine\n");
+    return false;
+  }
+  */
+
+  return true;
+}
+
+void engine_close(Engine engine)
+{
+  close(engine.stdin);
+  close(engine.stdout);
+}
+
+bool engine1_open(Engine* engine1)
+{
+  printf("Trying to open engine1-stdin\n");
+
+  engine1->stdin = open("engine1-stdin", O_WRONLY);
+
+  if(engine1->stdin == -1)
+  {
+    printf("Could not open engine1-stdin\n");
+
+    return false;
+  }
+
+  printf("Trying to open engine1-stdout\n");
+
+  engine1->stdout = open("engine1-stdout", O_RDONLY);
+
+  if(engine1->stdout == -1)
+  {
+    printf("Could not open engine1-stdout\n");
+
+    close(engine1->stdin);
+
+    return false;
+  }
+  return true;
+}
+
+bool engine2_open(Engine* engine2)
+{
+  engine2->stdin = open("engine2-stdin", O_WRONLY);
+
+  if(engine2->stdin == -1)
+  {
+    printf("Could not open engine2-stdin\n");
+
+    return false;
+  }
+
+  engine2->stdout = open("engine2-stdout", O_RDONLY);
+
+  if(engine2->stdout == -1)
+  {
+    printf("Could not open engine2-stdout\n");
+
+    close(engine2->stdin);
+
+    return false;
+  }
+  return true;
+}
+
 Move MOVE_NONE = 0;
 
 U64 BOARD_LOOKUP_LINES[BOARD_SQUARES][BOARD_SQUARES];
@@ -55,7 +186,7 @@ U64 create_board_line(Square source, Square target)
   return board;
 }
 
-void init_board_lookup_lines()
+void init_board_lookup_lines(void)
 {
   for(Square sourceSquare = A8; sourceSquare <= H1; sourceSquare++)
   {
@@ -121,7 +252,7 @@ char* move_string(char* moveString, Move move)
   return moveString;
 }
 
-void init_all()
+void init_all(void)
 {
   init_piece_lookup_masks();
 
@@ -154,40 +285,7 @@ void position_string(char* positionString, const char fenString[], MoveArray mov
   }
 }
 
-bool write_engine(Engine engine, const char string[])
-{
-  char writeChar;
-  for(int index = 0; index < strlen(string); index++)
-  {
-    writeChar = string[index];
-
-    if(writeChar == '\n' || writeChar == '\0') break;
-
-    if(write(engine.stdin, &writeChar, sizeof(writeChar)) < 1) return false;
-  }
-
-  writeChar = '\n';
-  if(write(engine.stdin, &writeChar, sizeof(writeChar)) < 1) return false;
-
-  return true;
-}
-
-bool read_engine(char* string, Engine engine)
-{
-  char readChar;
-  int index = 0;
-  int readReturn;
-
-  while((readReturn = read(engine.stdout, &readChar, sizeof(readChar))) == 1)
-  {
-    if(readChar == '\n' || readChar == '\0') break;
-
-    string[index++] = readChar;
-  }
-  return (readReturn != -1 && index > 0);
-}
-
-Move move_engine(Engine engine, const char fenString[], MoveArray moveArray)
+Move input_engine_move(Engine engine, Position position, MoveArray moveArray)
 {
   if(!write_engine(engine, "isready"))
   {
@@ -215,7 +313,7 @@ Move move_engine(Engine engine, const char fenString[], MoveArray moveArray)
   char positionString[1024];
   memset(positionString, 0, sizeof(positionString));
 
-  position_string(positionString, fenString, moveArray);
+  position_string(positionString, FEN_START, moveArray);
 
   if(!write_engine(engine, positionString))
   {
@@ -223,7 +321,7 @@ Move move_engine(Engine engine, const char fenString[], MoveArray moveArray)
     return MOVE_NONE;
   }
 
-  if(!write_engine(engine, "go"))
+  if(!write_engine(engine, "go depth 3"))
   {
     printf("Could not write to engine\n");
     return MOVE_NONE;
@@ -244,19 +342,68 @@ Move move_engine(Engine engine, const char fenString[], MoveArray moveArray)
   }
   while(strncmp(readString, "bestmove", 8));
 
+  printf("parsing engine bestmove: (%s)\n", readString + 9);
+  Move move = parse_move(readString + 9);
 
-  return parse_move(readString + 9);
+  return complete_move(position.boards, move);
 }
 
-Move move_player(Position position)
+void position_print(Position position)
 {
-  /*
-  print the position
+  printf("\n");
+  for(int rank = 0; rank < BOARD_RANKS; rank++)
+  {
+    for(int file = 0; file < BOARD_FILES; file++)
+    {
+      Square square = (rank * BOARD_FILES) + file;
 
-  while input is something and not legal move:
-    input string move from user
-  */
-  return MOVE_NONE;
+      if(!file) printf("%d ", BOARD_RANKS - rank);
+
+      int printPiece = -1;
+
+      for(Piece piece = PIECE_WHITE_PAWN; piece <= PIECE_BLACK_KING; piece++)
+      {
+        if(BOARD_SQUARE_GET(position.boards[piece], square))
+          printPiece = piece;
+      }
+      printf("%c ", (printPiece != -1) ? PIECE_SYMBOLS[printPiece] : '.');
+    }
+    printf("\n");
+  }
+  printf("  A B C D E F G H\n\n");
+
+  printf("Side: %s\n", (position.side == SIDE_WHITE) ? "white" : "black");
+
+  printf("Enpassant: %s\n", (position.passant != SQUARE_NONE) ? SQUARE_STRINGS[position.passant] : "no");
+
+  printf("Castling: %c%c%c%c\n\n",
+    (position.castle & CASTLE_WHITE_KING) ? 'K' : '-',
+    (position.castle & CASTLE_WHITE_QUEEN) ? 'Q' : '-',
+    (position.castle & CASTLE_BLACK_KING) ? 'k' : '-',
+    (position.castle & CASTLE_BLACK_QUEEN) ? 'q' : '-'
+  );
+}
+
+Move input_player_move(Player player, Position position)
+{
+  position_print(position);
+
+  printf("Player: %s\n", player.name);
+
+  char moveString[64];
+  Move inputMove;
+
+  do
+  {
+    if(!stdin_string(moveString, "Input Move: ")) return MOVE_NONE;
+
+    inputMove = parse_move(moveString);
+
+    inputMove = complete_move(position.boards, inputMove);
+  }
+  while(!move_fully_legal(position, inputMove));
+  
+  return inputMove;
 }
 
 bool position_alive(Position position)
@@ -266,141 +413,66 @@ bool position_alive(Position position)
 
 void player_vs_player(void)
 {
-  /*
-  while game still going on:
-    if side is white:
-      input move from player white
+  Player player1 = {"player1"};
+  Player player2 = {"player2"};
 
-    else:
-      input move from player black
+  Position position;
+  parse_fen(&position, FEN_START);
+
+  /*
+  MoveArray moveArray;
+
+  moveArray.amount = 0;
+  moveArray.moves[0] = 0;
   */
+
+  while(position_alive(position))
+  {
+    if(position.side == SIDE_WHITE)
+    {
+      Move move = input_player_move(player1, position);
+
+      if(move == MOVE_NONE) // The player stopped playing
+      {
+        break;
+      }
+
+      make_move(&position, move);
+    }
+    else
+    {
+      Move move = input_player_move(player2, position);
+
+      if(move == MOVE_NONE) // The player stopped playing
+      {
+        break;
+      }
+
+      make_move(&position, move);
+    }
+  }
 }
 
 void player_vs_engine(void)
 {
-  Engine engine = {"Engine Name", "Engine Authour", 1, 0};
+  Player player = {"player"};
 
-  if(!write_engine(engine, "uci"))
+
+  Engine engine;
+  if(!engine1_open(&engine))
   {
-    printf("Could not write to engine\n");
+    printf("Could not open engine\n");
     return;
   }
-
-  char readString[1024];
-  
-  do 
-  {
-    memset(readString, 0, sizeof(readString));
-
-    if(!read_engine(readString, engine))
-    {
-      printf("Can not read from engine\n");
-      return;
-    }
-    
-    printf("Engine: (%s)\n", readString);
-  }
-  while(strcmp(readString, "uciok"));
-
-
-  if(!write_engine(engine, "ucinewgame"))
-  {
-    printf("Could not write to engine\n");
-    return;
-  }
-
-
-
-  
-
-  Position position;
-  parse_fen(&position, FEN_START);
-
-  MoveArray moveArray;
-
-  moveArray.amount = 0;
-  moveArray.moves[0] = 0;
-
-
-  parse_fen(&position, FEN_START);
-
-  while(position_alive(position))
-  {
-    if(position.side == SIDE_WHITE)
-    {
-      Move move = move_player(position);
-
-      if(move == MOVE_NONE) // The player stopped playing
-      {
-        break;
-      }
-
-      make_move(&position, move);
-    }
-    else
-    {
-      Move move = move_engine(engine, FEN_START, moveArray);
-
-      if(move == MOVE_NONE) // The engine stopped playing
-      {
-        break;
-      }
-
-      make_move(&position, move);
-    }
-  }
-
-
-
-  if(!write_engine(engine, "quit"))
-  {
-    printf("Could not write to engine\n");
-    return;
-  }
-}
-
-bool engine_connect(Engine* engine)
-{
-  if(!write_engine(*engine, "uci"))
-  {
-    printf("Could not write to engine\n");
-    return false;
-  }
-
-  char readString[1024];
-  
-  do 
-  {
-    memset(readString, 0, sizeof(readString));
-
-    if(!read_engine(readString, *engine))
-    {
-      printf("Can not read from engine\n");
-      return false;
-    }
-    
-    printf("Engine: (%s)\n", readString);
-  }
-  while(strcmp(readString, "uciok"));
-
-  if(!write_engine(*engine, "ucinewgame"))
-  {
-    printf("Could not write to engine\n");
-    return false;
-  }
-
-  return true;
-}
-
-void engine_vs_player(void)
-{
-  Engine engine = {"Engine Name", "Engine Authour", 1, 0};
 
   if(!engine_connect(&engine))
   {
     printf("Engine could not connect\n");
+
+    engine_close(engine);
     return;
   }
+  
 
   Position position;
   parse_fen(&position, FEN_START);
@@ -417,7 +489,81 @@ void engine_vs_player(void)
   {
     if(position.side == SIDE_WHITE)
     {
-      Move move = move_engine(engine, FEN_START, moveArray);
+      Move move = input_player_move(player, position);
+
+      if(move == MOVE_NONE) // The player stopped playing
+      {
+        break;
+      }
+
+      make_move(&position, move);
+
+      moveArray.moves[moveArray.amount++] = move;
+    }
+    else
+    {
+      printf("Input engine move on position: \n");
+
+      position_print(position);
+
+      Move move = input_engine_move(engine, position, moveArray);
+
+      if(move == MOVE_NONE) // The engine stopped playing
+      {
+        printf("Engine did ilegal move\n");
+        break;
+      }
+
+      make_move(&position, move);
+
+      moveArray.moves[moveArray.amount++] = move;
+    }
+  }
+
+  printf("write_engine(engine, \"quit\")\n");
+
+  write_engine(engine, "quit");
+
+  engine_close(engine);
+}
+
+
+
+void engine_vs_player(void)
+{
+  Engine engine;
+  if(!engine1_open(&engine))
+  {
+    printf("Could not open engine\n");
+    return;
+  }
+
+  if(!engine_connect(&engine))
+  {
+    printf("Engine could not connect\n");
+
+    engine_close(engine);
+    return;
+  }
+
+
+  Player player = {"player"};
+
+
+  Position position;
+  parse_fen(&position, FEN_START);
+
+  MoveArray moveArray;
+
+  moveArray.amount = 0;
+  moveArray.moves[0] = 0;
+
+
+  while(position_alive(position))
+  {
+    if(position.side == SIDE_WHITE)
+    {
+      Move move = input_engine_move(engine, position, moveArray);
 
       if(move == MOVE_NONE) // The engine stopped playing
       {
@@ -428,7 +574,7 @@ void engine_vs_player(void)
     }
     else
     {
-      Move move = move_player(position);
+      Move move = input_player_move(player, position);
 
       if(move == MOVE_NONE) // The player stopped playing
       {
@@ -440,66 +586,9 @@ void engine_vs_player(void)
   }
 
 
+  write_engine(engine, "quit");
 
-  if(!write_engine(engine, "quit"))
-  {
-    printf("Could not write to engine\n");
-    return;
-  }
-}
-
-void engine_close(Engine engine)
-{
-  close(engine.stdin);
-  close(engine.stdout);
-}
-
-bool engine1_open(Engine* engine1)
-{
-  engine1->stdin = open("engine1-stdin", O_WRONLY);
-
-  if(engine1->stdin == -1)
-  {
-    printf("Could not open engine1-stdin\n");
-
-    return false;
-  }
-
-  engine1->stdout = open("engine1-stdout", O_RDONLY);
-
-  if(engine1->stdout == -1)
-  {
-    printf("Could not open engine1-stdout\n");
-
-    close(engine1->stdin);
-
-    return false;
-  }
-  return true;
-}
-
-bool engine2_open(Engine* engine2)
-{
-  engine2->stdin = open("engine2-stdin", O_WRONLY);
-
-  if(engine2->stdin == -1)
-  {
-    printf("Could not open engine2-stdin\n");
-
-    return false;
-  }
-
-  engine2->stdout = open("engine2-stdout", O_RDONLY);
-
-  if(engine2->stdout == -1)
-  {
-    printf("Could not open engine2-stdout\n");
-
-    close(engine2->stdin);
-
-    return false;
-  }
-  return true;
+  engine_close(engine);
 }
 
 void engine_vs_engine(void)
@@ -553,7 +642,7 @@ void engine_vs_engine(void)
   {
     if(position.side == SIDE_WHITE)
     {
-      Move move = move_engine(engine1, FEN_START, moveArray);
+      Move move = input_engine_move(engine1, position, moveArray);
 
       if(move == MOVE_NONE) // Engine1 stopped playing
       {
@@ -564,7 +653,7 @@ void engine_vs_engine(void)
     }
     else
     {
-      Move move = move_engine(engine2, FEN_START, moveArray);
+      Move move = input_engine_move(engine2, position, moveArray);
 
       if(move == MOVE_NONE) // Engine2 stopped playing
       {
@@ -584,93 +673,9 @@ void engine_vs_engine(void)
 
 int main(int argc, char* argv[])
 {
-  player_vs_player();
-  /*
-  const char matchString[] = "player vs player";
+  init_all();
 
-  player_vs_player();
-
-  printf("Opening engine1-stdout...\n");
-
-  int engine1Stdout = open("engine1-stdout", O_RDONLY);
-  if(engine1Stdout == -1)
-  {
-    printf("Could not open engine1Stdout\n");
-    return 1;
-  }
-
-  printf("Opened engine1-stdout\n");
-
-  printf("Opening engine1-stdin...\n");
-
-  int engine1Stdin = open("engine1-stdin", O_WRONLY);
-  if(engine1Stdout == -1)
-  {
-    printf("Could not open engine1-stdin\n");
-
-    close(engine1Stdout);
-
-    return 2;
-  }
-
-  printf("Opened engine1-stdin\n");
-
-  char inputBuffer[64];
-  char outputBuffer[64];
-  
-  while(1)
-  {
-    memset(inputBuffer, 0, sizeof(inputBuffer));
-
-    printf("To engine1-stdin: ");
-    if(scanf("%[^\n]%*c", inputBuffer) < 1) break;
-
-    printf("Writing to engine1-stdin:\n");
-
-    char writeChar;
-
-    for(int index = 0; index < sizeof(inputBuffer); index++)
-    {
-      writeChar = inputBuffer[index];
-
-      // if(writeChar == '\n' || writeChar == '\0') break;
-
-      if(writeChar == '\0') break;
-
-      // printf("%c", writeChar);
-
-      if(write(engine1Stdin, &writeChar, sizeof(writeChar)) < 1) break;
-    }
-
-    writeChar = '\n';
-
-    printf("Writing a backslash\n");
-    if(write(engine1Stdin, &writeChar, sizeof(writeChar)) < 1) break;
-
-    printf("Written to engine1-stdin\n");
-
-    memset(outputBuffer, 0, sizeof(outputBuffer));
-
-    printf("Reading from engine1-stdout\n");
-
-    char readChar;
-    for(int index = 0; read(engine1Stdout, &readChar, sizeof(readChar)) > 0; index++)
-    {
-      if(readChar == '\n' || readChar == '\0') break;
-
-      outputBuffer[index] = readChar;
-    }
-
-    printf("Read from engine1-stdout\n");
-
-    printf("From engine1-stdout: (%s)\n", outputBuffer);
-  }
-
-  printf("Closing pipes\n");
-
-  close(engine1Stdout);
-  close(engine1Stdin);
-  */
+  player_vs_engine();
 
   return 0;
 }

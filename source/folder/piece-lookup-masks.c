@@ -128,7 +128,7 @@ U64 mask_rook_attacks(Square square)
     return attacks;
 }
 
-void init_piece_lookup_masks()
+void init_piece_lookup_masks(void)
 {
     for (Square square = 0; square < BOARD_SQUARES; square++)
     {
@@ -146,7 +146,7 @@ void init_piece_lookup_masks()
     }
 }
 
-void init_bishop_rook_relevant_bits()
+void init_bishop_rook_relevant_bits(void)
 {
     for (Square square = 0; square < BOARD_SQUARES; square++)
     {

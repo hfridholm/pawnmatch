@@ -46,7 +46,7 @@ void init_bishop_lookup_attacks()
     }
 }
 
-void init_piece_lookup_attacks()
+void init_piece_lookup_attacks(void)
 {
     init_rook_lookup_attacks();
 
