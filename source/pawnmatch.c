@@ -22,6 +22,8 @@ typedef struct
 
 bool write_engine(Engine engine, const char string[])
 {
+  // printf("To engine: (%s)\n", string);
+
   char writeChar;
   for(int index = 0; index < strlen(string); index++)
   {
@@ -50,12 +52,15 @@ bool read_engine(char* string, Engine engine)
 
     string[index++] = readChar;
   }
-  return (readReturn != -1 && index > 0);
+
+  // printf("From engine: (%s)\n", string);
+
+  // return (readReturn != -1 && index > 0);
+  return (readReturn != -1);
 }
 
 bool engine_connect(Engine* engine)
 {
-  /*
   if(!write_engine(*engine, "uci"))
   {
     printf("Could not write to engine\n");
@@ -73,8 +78,6 @@ bool engine_connect(Engine* engine)
       printf("Can not read from engine\n");
       return false;
     }
-    
-    printf("Engine: (%s)\n", readString);
   }
   while(strcmp(readString, "uciok"));
 
@@ -83,7 +86,6 @@ bool engine_connect(Engine* engine)
     printf("Could not write to engine\n");
     return false;
   }
-  */
 
   return true;
 }
@@ -285,7 +287,12 @@ void position_string(char* positionString, const char fenString[], MoveArray mov
   }
 }
 
-Move input_engine_move(Engine engine, Position position, MoveArray moveArray)
+void go_string(char* goString, Clock clock)
+{
+  sprintf(goString, "go wtime %ld btime %ld", clock.wtime, clock.btime);
+}
+
+Move input_engine_move(Engine engine, Position position, MoveArray moveArray, Clock clock)
 {
   if(!write_engine(engine, "isready"))
   {
@@ -304,8 +311,6 @@ Move input_engine_move(Engine engine, Position position, MoveArray moveArray)
       printf("Can not read from engine\n");
       return MOVE_NONE;
     }
-    
-    printf("Engine: (%s)\n", readString);
   }
   while(strcmp(readString, "readyok"));
 
@@ -321,7 +326,13 @@ Move input_engine_move(Engine engine, Position position, MoveArray moveArray)
     return MOVE_NONE;
   }
 
-  if(!write_engine(engine, "go depth 3"))
+
+  char goString[64];
+  memset(goString, 0, sizeof(goString));
+
+  go_string(goString, clock);
+
+  if(!write_engine(engine, goString))
   {
     printf("Could not write to engine\n");
     return MOVE_NONE;
@@ -337,12 +348,9 @@ Move input_engine_move(Engine engine, Position position, MoveArray moveArray)
       printf("Can not read from engine\n");
       return MOVE_NONE;
     }
-    
-    printf("Engine: (%s)\n", readString);
   }
   while(strncmp(readString, "bestmove", 8));
 
-  printf("parsing engine bestmove: (%s)\n", readString + 9);
   Move move = parse_move(readString + 9);
 
   return complete_move(position.boards, move);
@@ -477,13 +485,14 @@ void player_vs_engine(void)
   Position position;
   parse_fen(&position, FEN_START);
 
+
+  Clock clock = {60000, 60000, 0, 0};
+
+
   MoveArray moveArray;
 
   moveArray.amount = 0;
   moveArray.moves[0] = 0;
-
-
-  parse_fen(&position, FEN_START);
 
   while(position_alive(position))
   {
@@ -502,11 +511,9 @@ void player_vs_engine(void)
     }
     else
     {
-      printf("Input engine move on position: \n");
-
       position_print(position);
 
-      Move move = input_engine_move(engine, position, moveArray);
+      Move move = input_engine_move(engine, position, moveArray, clock);
 
       if(move == MOVE_NONE) // The engine stopped playing
       {
@@ -519,8 +526,6 @@ void player_vs_engine(void)
       moveArray.moves[moveArray.amount++] = move;
     }
   }
-
-  printf("write_engine(engine, \"quit\")\n");
 
   write_engine(engine, "quit");
 
@@ -553,6 +558,10 @@ void engine_vs_player(void)
   Position position;
   parse_fen(&position, FEN_START);
 
+
+  Clock clock = {10000, 10000, 0, 0};
+
+
   MoveArray moveArray;
 
   moveArray.amount = 0;
@@ -563,7 +572,7 @@ void engine_vs_player(void)
   {
     if(position.side == SIDE_WHITE)
     {
-      Move move = input_engine_move(engine, position, moveArray);
+      Move move = input_engine_move(engine, position, moveArray, clock);
 
       if(move == MOVE_NONE) // The engine stopped playing
       {
@@ -584,7 +593,6 @@ void engine_vs_player(void)
       make_move(&position, move);
     }
   }
-
 
   write_engine(engine, "quit");
 
@@ -630,19 +638,21 @@ void engine_vs_engine(void)
   Position position;
   parse_fen(&position, FEN_START);
 
+
+  Clock clock = {10000, 10000, 0, 0};
+
+
   MoveArray moveArray;
 
   moveArray.amount = 0;
   moveArray.moves[0] = 0;
 
 
-  parse_fen(&position, FEN_START);
-
   while(position_alive(position))
   {
     if(position.side == SIDE_WHITE)
     {
-      Move move = input_engine_move(engine1, position, moveArray);
+      Move move = input_engine_move(engine1, position, moveArray, clock);
 
       if(move == MOVE_NONE) // Engine1 stopped playing
       {
@@ -653,7 +663,7 @@ void engine_vs_engine(void)
     }
     else
     {
-      Move move = input_engine_move(engine2, position, moveArray);
+      Move move = input_engine_move(engine2, position, moveArray, clock);
 
       if(move == MOVE_NONE) // Engine2 stopped playing
       {

@@ -79,6 +79,14 @@ typedef struct
 
 typedef struct
 {
+  long wtime;
+  long btime;
+  int winc;
+  int binc;
+} Clock;
+
+typedef struct
+{
   Move moves[256];
   int amount;
 } MoveArray;
