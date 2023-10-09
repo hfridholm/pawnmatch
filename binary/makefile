@@ -1,6 +1,9 @@
 CLEAN_TARGET := clean
 
-COMPILE_FLAGS := -Wall -Werror -g -Og -std=gnu99 -oFast
+SDL_FLAGS := # `sdl2-config --libs --cflags` -lSDL2main -lSDL2 -lSDL2_image
+SDL_FLAGS := -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf -lSDL2_mixer
+
+COMPILE_FLAGS := -Wall -Werror -g -Og -std=gnu99 -oFast $(SDL_FLAGS)
 COMPILE_PRGRM := gcc
 COMPILE_LINKS := -lm
 

@@ -2,6 +2,8 @@
 
 #include "piece-lookup-attacks.h"
 
+U64 BOARD_LOOKUP_LINES[BOARD_SQUARES][BOARD_SQUARES];
+
 bool board_square_attacked(Position position, Square square, Side side)
 {
   if(queen_lookup_attacks(square, position.covers[SIDE_BOTH])   & ((side == SIDE_WHITE) ? position.boards[PIECE_WHITE_QUEEN]  : position.boards[PIECE_BLACK_QUEEN]))  return true;

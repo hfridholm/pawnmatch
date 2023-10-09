@@ -148,10 +148,6 @@ bool engine2_open(Engine* engine2)
   return true;
 }
 
-Move MOVE_NONE = 0;
-
-U64 BOARD_LOOKUP_LINES[BOARD_SQUARES][BOARD_SQUARES];
-
 U64 create_board_line(Square source, Square target)
 {
   U64 board = 0ULL;

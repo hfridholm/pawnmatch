@@ -72,3 +72,5 @@ const Move MOVE_SHIFT_SOURCE    = 0;
 const Move MOVE_SHIFT_TARGET    = 6;
 const Move MOVE_SHIFT_PIECE     = 12;
 const Move MOVE_SHIFT_PROMOTE   = 16;
+
+const Move MOVE_NONE = 0;

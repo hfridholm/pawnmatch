@@ -154,6 +154,6 @@ extern bool move_fully_legal(Position position, Move move);
 
 extern Move complete_move(U64 boards[12], Move move);
 
-extern Move MOVE_NONE;
+extern const Move MOVE_NONE;
 
 #endif
