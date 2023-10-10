@@ -37,3 +37,11 @@ https://wiki.libsdl.org/SDL2_image/CategoryAPI
 https://wiki.libsdl.org/SDL2_ttf/CategoryAPI
 
 [SDL Keycodes](https://wiki.libsdl.org/SDL2/SDL_Keycode)
+
+https://stackoverflow.com/questions/46311411/rendering-parts-of-the-screen-on-each-frame-with-sdl2
+
+https://stackoverflow.com/questions/40886350/how-to-connect-multiple-textures-in-the-one-in-sdl2
+
+https://wiki.libsdl.org/SDL2/SDL_SetRenderTarget
+
+https://wiki.libsdl.org/SDL2/SDL_WindowEvent
