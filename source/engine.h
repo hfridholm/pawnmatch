@@ -152,6 +152,8 @@ extern void init_bishop_rook_relevant_bits();
 
 extern bool move_fully_legal(Position position, Move move);
 
+extern bool move_pseudo_legal(Position position, Move move);
+
 extern Move complete_move(U64 boards[12], Move move);
 
 extern const Move MOVE_NONE;

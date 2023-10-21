@@ -39,4 +39,8 @@ extern bool squares_texture_create(SDL_Texture** texture, SDL_Renderer* renderer
 
 extern bool pieces_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect, Position position, Square liftedSquare);
 
+extern bool moves_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect, Position position, Square square);
+
+extern bool texture_square_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect boardRect, Square square);
+
 #endif // SCREEN_H
