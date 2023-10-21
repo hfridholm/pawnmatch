@@ -1,5 +1,23 @@
 #include "../screen.h"
 
+bool render_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height)
+{
+  // https://stackoverflow.com/questions/24241974/sdl2-generate-fully-transparent-texture
+
+  *texture = SDL_CreateTexture(renderer, 0, SDL_TEXTUREACCESS_TARGET, width, height);
+
+  if(*texture == NULL)
+  {
+    fprintf(stderr, "SDL_CreateTexture: %s\n", SDL_GetError());
+
+    return false;
+  }
+
+  SDL_SetTextureBlendMode(*texture, SDL_BLENDMODE_BLEND);
+
+  return true;
+}
+
 bool texture_rect_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect destRect)
 {
   if(SDL_RenderCopy(renderer, texture, NULL, &destRect) != 0)

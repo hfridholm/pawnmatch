@@ -10,7 +10,7 @@ const char* PIECE_TYPE_STRINGS[6] = {"pawn", "knight", "bishop", "rook", "queen"
 SDL_Texture* PIECE_TEXTURES[12];
 
 
-bool pieces_texture_create(SDL_Renderer* renderer)
+bool piece_textures_load(SDL_Renderer* renderer)
 {
   char filePath[128];
 
@@ -36,7 +36,7 @@ bool pieces_texture_create(SDL_Renderer* renderer)
 SDL_Texture* WHITE_SQUARE_TEXTURE;
 SDL_Texture* BLACK_SQUARE_TEXTURE;
 
-bool squares_texture_create(SDL_Renderer* renderer)
+bool square_textures_load(SDL_Renderer* renderer)
 {
   if(image_texture_load(&WHITE_SQUARE_TEXTURE, renderer, "../source/screen/images/white-square.png"));
 
@@ -47,7 +47,28 @@ bool squares_texture_create(SDL_Renderer* renderer)
   return true;
 }
 
-void squares_texture_destroy()
+bool other_textures_load(SDL_Renderer* renderer)
+{
+  /*
+  if(image_texture_load(&BLACK_SQUARE_TEXTURE, renderer, "../source/screen/images/black-square.png"));
+  if(image_texture_load(&BLACK_SQUARE_TEXTURE, renderer, "../source/screen/images/black-square.png"));
+  if(image_texture_load(&BLACK_SQUARE_TEXTURE, renderer, "../source/screen/images/black-square.png"));
+  */
+  return true;
+}
+
+bool screen_textures_load(SDL_Renderer* renderer)
+{
+  square_textures_load(renderer);
+
+  piece_textures_load(renderer);
+
+  other_textures_load(renderer);
+
+  return true;
+}
+
+void square_textures_destroy()
 {
   SDL_DestroyTexture(WHITE_SQUARE_TEXTURE);
   SDL_DestroyTexture(BLACK_SQUARE_TEXTURE);
@@ -55,13 +76,20 @@ void squares_texture_destroy()
   fprintf(stdout, "Destroyed square textures!\n");
 }
 
-void pieces_texture_destroy()
+void piece_textures_destroy()
 {
   for(Piece piece = PIECE_WHITE_PAWN; piece <= PIECE_BLACK_KING; piece++)
   {
     SDL_DestroyTexture(PIECE_TEXTURES[piece]);
   }
   fprintf(stdout, "Destroyed piece textures!\n");
+}
+
+void screen_textures_destroy()
+{
+  square_textures_destroy();
+
+  piece_textures_destroy();
 }
 
 SDL_Rect board_square_rect(SDL_Rect boardRect, Square square)
@@ -75,16 +103,11 @@ SDL_Rect board_square_rect(SDL_Rect boardRect, Square square)
   return (SDL_Rect) {file * squareWidth, rank * squareHeight, squareWidth, squareHeight};
 }
 
-bool squares_pieces_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect, Position position)
+extern bool render_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height);
+
+bool squares_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect)
 {
-  *texture = SDL_CreateTexture(renderer, 0, SDL_TEXTUREACCESS_TARGET, boardRect.w, boardRect.h);
-
-  if(*texture == NULL)
-  {
-    fprintf(stderr, "SDL_CreateTexture: %s\n", SDL_GetError());
-
-    return false;
-  }
+  if(!render_texture_create(texture, renderer, boardRect.w, boardRect.h)) return false;
 
   if(SDL_SetRenderTarget(renderer, *texture) != 0)
   {
@@ -107,11 +130,52 @@ bool squares_pieces_texture_create(SDL_Texture** texture, SDL_Renderer* renderer
     {
       texture_rect_render(renderer, BLACK_SQUARE_TEXTURE, squareRect);
     }
+  }
+
+  if(SDL_SetRenderTarget(renderer, NULL) != 0)
+  {
+    fprintf(stderr, "SDL_SetRenderTarget: %s\n", SDL_GetError());
+
+    SDL_DestroyTexture(*texture);
+
+    return false;
+  }
+
+  SDL_RenderPresent(renderer);
+
+  fprintf(stdout, "Created squares texture!\n");
+
+  return true;
+}
+
+bool pieces_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect, Position position, Square liftedSquare)
+{
+  if(!render_texture_create(texture, renderer, boardRect.w, boardRect.h)) return false;
+
+  if(SDL_SetRenderTarget(renderer, *texture) != 0)
+  {
+    fprintf(stderr, "SDL_SetRenderTarget: %s\n", SDL_GetError());
+
+    SDL_DestroyTexture(*texture);
+
+    return false;
+  }
+
+  for(Square square = 0; square < BOARD_SQUARES; square++)
+  {
+    if(square == liftedSquare)
+    {
+      fprintf(stdout, "Rendering not square: %d\n", square);
+
+      continue;
+    }
 
     Piece piece = boards_square_piece(position.boards, square);
 
     if(piece != PIECE_NONE)
     {
+      SDL_Rect squareRect = board_square_rect(boardRect, square);
+      
       texture_rect_render(renderer, PIECE_TEXTURES[piece], squareRect);
     }
   }
@@ -127,7 +191,7 @@ bool squares_pieces_texture_create(SDL_Texture** texture, SDL_Renderer* renderer
 
   SDL_RenderPresent(renderer);
 
-  fprintf(stdout, "Created squares pieces texture!\n");
+  fprintf(stdout, "Updated pieces texture!\n");
 
   return true;
 }
@@ -139,28 +203,6 @@ SDL_Rect board_rect_get(int screenWidth, int screenHeight)
   return (SDL_Rect) {0, 0, boardLength, boardLength};
 }
 
-bool board_render(Screen screen, Position position)
-{
-  SDL_Rect boardRect = board_rect_get(screen.width, screen.height);
-
-
-  SDL_Texture* squaresPiecesTexture;
-
-  if(squares_pieces_texture_create(&squaresPiecesTexture, screen.renderer, boardRect, position))
-  {
-    fprintf(stdout, "Created squares pieces texture!\n");
-
-
-    SDL_RenderCopy(screen.renderer, squaresPiecesTexture, NULL, &boardRect);
-
-
-    SDL_DestroyTexture(squaresPiecesTexture);
-  }
-  else fprintf(stderr, "Could not create squares pieces texture!\n");
-
-  return true;
-}
-
 Square board_pixels_square(SDL_Rect boardRect, int width, int height)
 {
   int file = ((float) width / (float) (boardRect.w + 1)) * BOARD_FILES;
@@ -168,4 +210,3 @@ Square board_pixels_square(SDL_Rect boardRect, int width, int height)
 
   return (rank * BOARD_FILES) + file;
 }
-

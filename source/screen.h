@@ -21,8 +21,6 @@ extern void sdl_drivers_quit();
 
 extern bool screen_create(Screen* screen, int width, int height, const char title[]);
 
-extern bool pieces_texture_create(SDL_Renderer* renderer);
-
 extern bool chunk_play(Mix_Chunk* chunk);
 
 extern void volume_set(int procent);
@@ -33,8 +31,12 @@ extern void sounds_free();
 
 extern bool music_play();
 
-extern bool music_resume();
+extern bool screen_textures_load(SDL_Renderer* renderer);
 
-extern bool music_pause();
+extern void screen_textures_destroy();
+
+extern bool squares_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect);
+
+extern bool pieces_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect, Position position, Square liftedSquare);
 
 #endif // SCREEN_H
