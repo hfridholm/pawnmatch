@@ -1,7 +1,7 @@
 #ifndef SCREEN_H
 #define SCREEN_H
 
-#include "header.h"
+#include "engine.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
