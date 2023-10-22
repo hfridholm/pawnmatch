@@ -23,9 +23,10 @@ extern SDL_Texture* ARROW_HEAD_TEXTURE;
 extern SDL_Texture* ARROW_BODY_TEXTURE;
 
 
-bool marks_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect, U64 marks)
+// The texture should be the same dimensions as the board
+bool marks_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, U64 marks)
 {
-  if(!render_texture_create(texture, renderer, boardRect.w, boardRect.h)) return false;
+  if(!render_texture_create(texture, renderer, width, height)) return false;
 
   if(SDL_SetRenderTarget(renderer, *texture) != 0)
   {
@@ -41,7 +42,7 @@ bool marks_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rec
   {
     int index = board_ls1b_index(marks);
 
-    texture_square_render(renderer, MARK_SQUARE_TEXTURE, boardRect, index);
+    texture_square_render(renderer, MARK_SQUARE_TEXTURE, width, height, index);
 
     marks = BOARD_SQUARE_POP(marks, index);
   }
@@ -60,9 +61,11 @@ bool marks_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rec
   return true;
 }
 
-bool squares_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect)
+extern SDL_Rect square_rect(int width, int height, Square square);
+
+bool squares_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height)
 {
-  if(!render_texture_create(texture, renderer, boardRect.w, boardRect.h)) return false;
+  if(!render_texture_create(texture, renderer, width, height)) return false;
 
   if(SDL_SetRenderTarget(renderer, *texture) != 0)
   {
@@ -75,7 +78,7 @@ bool squares_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_R
 
   for(Square square = 0; square < BOARD_SQUARES; square++)
   {
-    SDL_Rect squareRect = board_square_rect(boardRect, square);
+    SDL_Rect squareRect = square_rect(width, height, square);
 
     if(((square % BOARD_FILES) + (square / BOARD_FILES)) % 2 == 0)
     {
@@ -101,9 +104,57 @@ bool squares_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_R
   return true;
 }
 
-bool pieces_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect, Position position, Square liftedSquare)
+extern bool board_square_attacked(Position position, Square square, Side side);
+
+
+bool check_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, Position position)
 {
-  if(!render_texture_create(texture, renderer, boardRect.w, boardRect.h)) return false;
+  if(!render_texture_create(texture, renderer, width, height)) return false;
+
+  if(SDL_SetRenderTarget(renderer, *texture) != 0)
+  {
+    error_print("SDL_SetRenderTarget: %s", SDL_GetError());
+
+    texture_destroy(texture);
+
+    return false;
+  }
+
+  Piece kingPiece = (position.side == SIDE_WHITE) ? PIECE_WHITE_KING : PIECE_BLACK_KING;
+
+  Square kingSquare = board_ls1b_index(position.boards[kingPiece]);
+
+  // The king should always exists, but if it don't return false
+  if(kingSquare == -1)
+  {
+    printf("kingSquare == -1\n");
+    return false;
+  }
+
+  Side enemySide = (position.side == SIDE_WHITE) ? SIDE_BLACK : SIDE_WHITE;
+
+  if(board_square_attacked(position, kingSquare, enemySide))
+  {
+    texture_square_render(renderer, CHECK_SQUARE_TEXTURE, width, height, kingSquare);
+  }
+
+  if(SDL_SetRenderTarget(renderer, NULL) != 0)
+  {
+    error_print("SDL_SetRenderTarget: %s", SDL_GetError());
+
+    texture_destroy(texture);
+
+    return false;
+  }
+
+  SDL_RenderPresent(renderer);
+
+  return true;
+}
+
+bool pieces_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, Position position, Square liftedSquare)
+{
+  if(!render_texture_create(texture, renderer, width, height)) return false;
 
   if(SDL_SetRenderTarget(renderer, *texture) != 0)
   {
@@ -123,7 +174,7 @@ bool pieces_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Re
 
     if(piece != PIECE_NONE)
     {
-      SDL_Rect squareRect = board_square_rect(boardRect, square);
+      SDL_Rect squareRect = square_rect(width, height, square);
       
       texture_rect_render(renderer, PIECE_TEXTURES[piece], squareRect);
     }
@@ -143,9 +194,9 @@ bool pieces_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Re
   return true;
 }
 
-bool moves_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect, Position position, Square square)
+bool moves_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, Position position, Square square)
 {
-  if(!render_texture_create(texture, renderer, boardRect.w, boardRect.h)) return false;
+  if(!render_texture_create(texture, renderer, width, height)) return false;
 
   if(SDL_SetRenderTarget(renderer, *texture) != 0)
   {
@@ -159,6 +210,12 @@ bool moves_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rec
   // This dont include pawn moves forward
   U64 pieceLookupAttacks = piece_lookup_attacks(position, square);
 
+  // This includes black pawn movement
+  pieceLookupAttacks |= (1ULL << (square + BOARD_FILES)) | (1ULL << (square + BOARD_FILES * 2));
+
+  // This includes white pawn movement
+  pieceLookupAttacks |= (1ULL << (square - BOARD_FILES)) | (1ULL << (square - BOARD_FILES * 2));
+
   int loopCount = 0;
   while(pieceLookupAttacks && loopCount++ < 64)
   {
@@ -166,13 +223,14 @@ bool moves_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rec
 
     Move move = create_move(position.boards, square, index);
 
-    if(move_pseudo_legal(position, move))
+    if(move_fully_legal(position, move))
     {
-      texture_square_render(renderer, MOVE_SQUARE_TEXTURE, boardRect, index);
+      texture_square_render(renderer, MOVE_SQUARE_TEXTURE, width, height, index);
     }
 
     pieceLookupAttacks = BOARD_SQUARE_POP(pieceLookupAttacks, index);
   }
+
 
   if(SDL_SetRenderTarget(renderer, NULL) != 0)
   {
@@ -188,6 +246,13 @@ bool moves_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rec
   return true;
 }
 
+void board_textures_create(BoardTextures* boardTextures, Screen screen, Position position)
+{
+  squares_texture_create(&boardTextures->squares, screen.renderer, screen.boardRect.w, screen.boardRect.h);
+
+  pieces_texture_create(&boardTextures->pieces, screen.renderer, screen.boardRect.w, screen.boardRect.h, position, SQUARE_NONE);
+}
+
 void board_textures_destroy(BoardTextures* boardTextures)
 {
   texture_destroy(&boardTextures->squares);
@@ -198,7 +263,7 @@ void board_textures_destroy(BoardTextures* boardTextures)
 
   texture_destroy(&boardTextures->marks);
 
-  texture_destroy(&boardTextures->checks);
+  texture_destroy(&boardTextures->check);
 
   texture_destroy(&boardTextures->moves);
 

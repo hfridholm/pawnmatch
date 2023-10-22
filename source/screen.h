@@ -23,7 +23,7 @@ typedef struct
 typedef struct
 {
   SDL_Texture* squares; // Every square on the board
-  SDL_Texture* checks;  // The kings square marked on check
+  SDL_Texture* check;   // The kings square marked on check
   SDL_Texture* moved;   // The last move and the current grabbed square
   SDL_Texture* moves;   // All squares the grabbed piece can move to
   SDL_Texture* marks;   // Every square the user has marked
@@ -51,15 +51,17 @@ extern void sounds_free();
 
 extern bool music_play();
 
-extern bool squares_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect);
+extern bool pieces_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, Position position, Square liftedSquare);
 
-extern bool pieces_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect, Position position, Square liftedSquare);
+extern bool moves_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, Position position, Square square);
 
-extern bool moves_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect, Position position, Square square);
+extern bool check_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, Position position);
 
-extern bool marks_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, SDL_Rect boardRect, U64 marks);
+extern bool marks_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, U64 marks);
 
-extern bool texture_square_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect boardRect, Square square);
+extern bool texture_square_render(SDL_Renderer* renderer, SDL_Texture* texture, int width, int height, Square square);
+
+extern bool screen_texture_square_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect boardRect, Square square);
 
 extern void texture_destroy(SDL_Texture** texture);
 

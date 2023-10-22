@@ -6,9 +6,9 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-extern SDL_Rect board_rect_get(int screenWidth, int screenHeight);
+extern SDL_Rect board_rect(int screenWidth, int screenHeight);
  
-extern Square board_pixels_square(SDL_Rect boardRect, int width, int height);
+extern Square screen_pixels_square(SDL_Rect boardRect, int width, int height);
 
 extern bool texture_rect_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect destRect);
 
@@ -25,6 +25,8 @@ extern void screen_destroy(Screen* screen);
 extern Move create_move(U64 boards[12], Square sourceSquare, Square targetSquare);
 
 extern void board_textures_destroy(BoardTextures* boardTextures);
+
+extern void board_textures_create(BoardTextures* boardTextures, Screen screen, Position position);
 
 
 extern bool image_texture_load(SDL_Texture** texture, SDL_Renderer* renderer, const char filePath[]);
@@ -99,7 +101,7 @@ void board_render(Screen screen, BoardTextures boardTextures, Piece holdingPiece
 {
   texture_rect_render(screen.renderer, boardTextures.squares, screen.boardRect);
 
-  texture_rect_render(screen.renderer, boardTextures.checks, screen.boardRect);
+  texture_rect_render(screen.renderer, boardTextures.check, screen.boardRect);
 
   texture_rect_render(screen.renderer, boardTextures.moved, screen.boardRect);
 
@@ -114,11 +116,11 @@ void board_render(Screen screen, BoardTextures boardTextures, Piece holdingPiece
   if(holdingPiece != PIECE_NONE)
   {
     // Render texture on the square you are hovering over
-    Square square = board_pixels_square(screen.boardRect, screen.mouseX, screen.mouseY);
+    Square square = screen_pixels_square(screen.boardRect, screen.mouseX, screen.mouseY);
 
     if(square != SQUARE_NONE)
     {
-      texture_square_render(screen.renderer, HOVER_SQUARE_TEXTURE, screen.boardRect, square);
+      screen_texture_square_render(screen.renderer, HOVER_SQUARE_TEXTURE, screen.boardRect, square);
     }
 
     texture_pixels_center_render(screen.renderer, PIECE_TEXTURES[holdingPiece], screen.mouseX, screen.mouseY, 100, 100);
@@ -164,7 +166,7 @@ int main(int argc, char* argv[])
   }
   
 
-  screen.boardRect = board_rect_get(screen.width, screen.height);
+  screen.boardRect = board_rect(screen.width, screen.height);
 
 
   board_square_textures_load(screen.renderer);
@@ -174,9 +176,7 @@ int main(int argc, char* argv[])
   // otherwise, bad pointers occurs
   BoardTextures boardTextures = {0};
 
-  squares_texture_create(&boardTextures.squares, screen.renderer, screen.boardRect);
-
-  pieces_texture_create(&boardTextures.pieces, screen.renderer, screen.boardRect, position, SQUARE_NONE);
+  board_textures_create(&boardTextures, screen, position);
 
 
 
@@ -217,7 +217,7 @@ int main(int argc, char* argv[])
       int width = event.button.x;
       int height = event.button.y;
 
-      Square square = board_pixels_square(screen.boardRect, width, height);
+      Square square = screen_pixels_square(screen.boardRect, width, height);
 
       Piece piece = boards_square_piece(position.boards, square); 
 
@@ -243,6 +243,14 @@ int main(int argc, char* argv[])
 
 
             texture_destroy(&boardTextures.moves);
+
+            texture_destroy(&boardTextures.check);
+
+            check_texture_create(&boardTextures.check, screen.renderer, screen.boardRect.w, screen.boardRect.h, position);
+
+            texture_destroy(&boardTextures.pieces);
+
+            pieces_texture_create(&boardTextures.pieces, screen.renderer, screen.boardRect.w, screen.boardRect.h, position, SQUARE_NONE);
           }
         }
 
@@ -255,11 +263,11 @@ int main(int argc, char* argv[])
 
           texture_destroy(&boardTextures.pieces);
 
-          pieces_texture_create(&boardTextures.pieces, screen.renderer, screen.boardRect, position, grabbedSquare);
+          pieces_texture_create(&boardTextures.pieces, screen.renderer, screen.boardRect.w, screen.boardRect.h, position, grabbedSquare);
 
           texture_destroy(&boardTextures.moves);
 
-          moves_texture_create(&boardTextures.moves, screen.renderer, screen.boardRect, position, grabbedSquare);
+          moves_texture_create(&boardTextures.moves, screen.renderer, screen.boardRect.w, screen.boardRect.h, position, grabbedSquare);
         }
         else
         {
@@ -277,7 +285,7 @@ int main(int argc, char* argv[])
       int width = event.button.x;
       int height = event.button.y;
 
-      Square square = board_pixels_square(screen.boardRect, width, height);
+      Square square = screen_pixels_square(screen.boardRect, width, height);
 
 
       if(event.button.button == SDL_BUTTON_LEFT)
@@ -297,7 +305,9 @@ int main(int argc, char* argv[])
 
             texture_destroy(&boardTextures.moves);
 
-            moves_texture_create(&boardTextures.moves, screen.renderer, screen.boardRect, position, grabbedSquare);
+            texture_destroy(&boardTextures.check);
+
+            check_texture_create(&boardTextures.check, screen.renderer, screen.boardRect.w, screen.boardRect.h, position);
           }
         }
 
@@ -321,7 +331,7 @@ int main(int argc, char* argv[])
 
           texture_destroy(&boardTextures.pieces);
 
-          pieces_texture_create(&boardTextures.pieces, screen.renderer, screen.boardRect, position, SQUARE_NONE);
+          pieces_texture_create(&boardTextures.pieces, screen.renderer, screen.boardRect.w, screen.boardRect.h, position, SQUARE_NONE);
         }
       }
       else if(event.button.button == SDL_BUTTON_RIGHT)
@@ -338,7 +348,7 @@ int main(int argc, char* argv[])
 
             texture_destroy(&boardTextures.marks);
 
-            marks_texture_create(&boardTextures.marks, screen.renderer, screen.boardRect, markedSquaresBoard);
+            marks_texture_create(&boardTextures.marks, screen.renderer, screen.boardRect.w, screen.boardRect.h, markedSquaresBoard);
           }
           else
           {
@@ -375,7 +385,13 @@ int main(int argc, char* argv[])
 
         // SDL_SetWindowSize(screen.window, newWidth, newHeight);
 
-        screen.boardRect = board_rect_get(screen.width, screen.height);
+        screen.boardRect = board_rect(screen.width, screen.height);
+
+        // printf("boardRect: %d,%d %dx%d\n", screen.boardRect.x, screen.boardRect.y, screen.boardRect.w, screen.boardRect.h);
+
+        board_textures_destroy(&boardTextures);
+
+        board_textures_create(&boardTextures, screen, position);
       }
     }
 
