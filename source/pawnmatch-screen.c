@@ -16,11 +16,15 @@ extern bool texture_pixels_center_render(SDL_Renderer* renderer, SDL_Texture* te
 
 extern SDL_Texture* PIECE_TEXTURES[12];
 
-extern void screen_textures_destroy();
+extern void board_square_textures_destroy();
 
-extern void screen_destroy(Screen screen);
+extern void board_square_textures_load(SDL_Renderer* renderer);
+
+extern void screen_destroy(Screen* screen);
 
 extern Move create_move(U64 boards[12], Square sourceSquare, Square targetSquare);
+
+extern void board_textures_destroy(BoardTextures* boardTextures);
 
 
 extern bool image_texture_load(SDL_Texture** texture, SDL_Renderer* renderer, const char filePath[]);
@@ -88,11 +92,47 @@ void init_all(void)
 
 const char FEN_START[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
+extern SDL_Texture* HOVER_SQUARE_TEXTURE;
 
-SDL_Texture* MOVED_SQUARE_TEXTURE;
-SDL_Texture* MARKED_SQUARE_TEXTURE;
-SDL_Texture* MOVE_SQUARE_TEXTURE;
 
+void board_render(Screen screen, BoardTextures boardTextures, Piece holdingPiece)
+{
+  texture_rect_render(screen.renderer, boardTextures.squares, screen.boardRect);
+
+  texture_rect_render(screen.renderer, boardTextures.checks, screen.boardRect);
+
+  texture_rect_render(screen.renderer, boardTextures.moved, screen.boardRect);
+
+  texture_rect_render(screen.renderer, boardTextures.moves, screen.boardRect);
+
+  texture_rect_render(screen.renderer, boardTextures.marks, screen.boardRect);
+
+  texture_rect_render(screen.renderer, boardTextures.pieces, screen.boardRect);
+
+  texture_rect_render(screen.renderer, boardTextures.arrows, screen.boardRect);
+
+  if(holdingPiece != PIECE_NONE)
+  {
+    // Render texture on the square you are hovering over
+    Square square = board_pixels_square(screen.boardRect, screen.mouseX, screen.mouseY);
+
+    if(square != SQUARE_NONE)
+    {
+      texture_square_render(screen.renderer, HOVER_SQUARE_TEXTURE, screen.boardRect, square);
+    }
+
+    texture_pixels_center_render(screen.renderer, PIECE_TEXTURES[holdingPiece], screen.mouseX, screen.mouseY, 100, 100);
+  }
+}
+
+void screen_display(Screen screen, BoardTextures boardTextures, Piece holdingPiece)
+{
+  SDL_RenderClear(screen.renderer);
+
+  board_render(screen, boardTextures, holdingPiece);
+
+  SDL_RenderPresent(screen.renderer);
+}
 
 int main(int argc, char* argv[])
 {
@@ -106,11 +146,10 @@ int main(int argc, char* argv[])
   {
     sdl_drivers_quit();
 
-    fprintf(stderr, "Failed to initialize SDL drivers\n");
+    error_print("Failed to initialize SDL drivers");
     
     return 1;
   }
-  else fprintf(stdout, "Initialized SDL Drivers\n");
 
 
   Screen screen;
@@ -119,32 +158,25 @@ int main(int argc, char* argv[])
   {
     sdl_drivers_quit();
 
-    fprintf(stderr, "Failed to create screen!\n");
+    error_print("Failed to create screen");
 
     return 1;
   }
-  else fprintf(stdout, "Created screen!\n");
   
 
-
-  screen_textures_load(screen.renderer);
-
-  image_texture_load(&MOVED_SQUARE_TEXTURE, screen.renderer, "../source/screen/images/moved-square.png");
-  image_texture_load(&MARKED_SQUARE_TEXTURE, screen.renderer, "../source/screen/images/mark-square.png");
-  image_texture_load(&MOVE_SQUARE_TEXTURE, screen.renderer, "../source/screen/images/move-square.png");
+  screen.boardRect = board_rect_get(screen.width, screen.height);
 
 
-  SDL_Texture* piecesTexture;
-  SDL_Texture* squaresTexture;
-  SDL_Texture* movesTexture;
+  board_square_textures_load(screen.renderer);
 
 
-  SDL_Rect boardRect = board_rect_get(screen.width, screen.height);
+  // Important to initiate the struct empty,
+  // otherwise, bad pointers occurs
+  BoardTextures boardTextures = {0};
 
+  squares_texture_create(&boardTextures.squares, screen.renderer, screen.boardRect);
 
-  squares_texture_create(&squaresTexture, screen.renderer, boardRect);
-
-  pieces_texture_create(&piecesTexture, screen.renderer, boardRect, position, SQUARE_NONE);
+  pieces_texture_create(&boardTextures.pieces, screen.renderer, screen.boardRect, position, SQUARE_NONE);
 
 
 
@@ -165,10 +197,8 @@ int main(int argc, char* argv[])
   Square rightHoldingSquare = SQUARE_NONE;
 
 
-  int mouseX = 0, mouseY = 0;
 
-
-  U64 markedSquaresBoard = 0;
+  U64 markedSquaresBoard = 0ULL;
 
 
   SDL_Event event;
@@ -177,7 +207,7 @@ int main(int argc, char* argv[])
   {
     if(!SDL_WaitEvent(&event))
     {
-      fprintf(stderr, "SDL_WaitEvent: %s\n", SDL_GetError());
+      error_print("SDL_WaitEvent: %s", SDL_GetError());
     }
 
 
@@ -187,12 +217,17 @@ int main(int argc, char* argv[])
       int width = event.button.x;
       int height = event.button.y;
 
-      Square square = board_pixels_square(boardRect, width, height);
+      Square square = board_pixels_square(screen.boardRect, width, height);
 
       Piece piece = boards_square_piece(position.boards, square); 
 
       if(event.button.button == SDL_BUTTON_LEFT)
       {
+        markedSquaresBoard = 0ULL;
+
+        texture_destroy(&boardTextures.marks);
+
+
         // If a square is marked and the user clicks on another square, try to make that move
         if(markedSquare != SQUARE_NONE && markedSquare != square)
         {
@@ -206,23 +241,25 @@ int main(int argc, char* argv[])
             markedSquare = SQUARE_NONE;
             grabbedSquare = SQUARE_NONE;
 
-            markedSquaresBoard = 0ULL;
+
+            texture_destroy(&boardTextures.moves);
           }
         }
 
         // If the user cant make a move or it was an illegal move
+
         if(piece != PIECE_NONE) 
         {
           grabbedSquare = square;
           holdingPiece = piece;
 
-          SDL_DestroyTexture(piecesTexture);
+          texture_destroy(&boardTextures.pieces);
 
-          pieces_texture_create(&piecesTexture, screen.renderer, boardRect, position, grabbedSquare);
+          pieces_texture_create(&boardTextures.pieces, screen.renderer, screen.boardRect, position, grabbedSquare);
 
-          SDL_DestroyTexture(movesTexture);
+          texture_destroy(&boardTextures.moves);
 
-          moves_texture_create(&movesTexture, screen.renderer, boardRect, position, grabbedSquare);
+          moves_texture_create(&boardTextures.moves, screen.renderer, screen.boardRect, position, grabbedSquare);
         }
         else
         {
@@ -240,7 +277,7 @@ int main(int argc, char* argv[])
       int width = event.button.x;
       int height = event.button.y;
 
-      Square square = board_pixels_square(boardRect, width, height);
+      Square square = board_pixels_square(screen.boardRect, width, height);
 
 
       if(event.button.button == SDL_BUTTON_LEFT)
@@ -257,7 +294,10 @@ int main(int argc, char* argv[])
             markedSquare = SQUARE_NONE;
             grabbedSquare = SQUARE_NONE;
 
-            markedSquaresBoard = 0ULL;
+
+            texture_destroy(&boardTextures.moves);
+
+            moves_texture_create(&boardTextures.moves, screen.renderer, screen.boardRect, position, grabbedSquare);
           }
         }
 
@@ -267,6 +307,8 @@ int main(int argc, char* argv[])
         {
           markedSquare = SQUARE_NONE;
           grabbedSquare = SQUARE_NONE;
+
+          texture_destroy(&boardTextures.moves);
         }
         else if(square != markedSquare && grabbedSquare != SQUARE_NONE)
         {
@@ -277,9 +319,9 @@ int main(int argc, char* argv[])
         {
           holdingPiece = PIECE_NONE;
 
-          SDL_DestroyTexture(piecesTexture);
+          texture_destroy(&boardTextures.pieces);
 
-          pieces_texture_create(&piecesTexture, screen.renderer, boardRect, position, SQUARE_NONE);
+          pieces_texture_create(&boardTextures.pieces, screen.renderer, screen.boardRect, position, SQUARE_NONE);
         }
       }
       else if(event.button.button == SDL_BUTTON_RIGHT)
@@ -293,6 +335,10 @@ int main(int argc, char* argv[])
               markedSquaresBoard = BOARD_SQUARE_POP(markedSquaresBoard, square);
             }
             else markedSquaresBoard = BOARD_SQUARE_SET(markedSquaresBoard, square);
+
+            texture_destroy(&boardTextures.marks);
+
+            marks_texture_create(&boardTextures.marks, screen.renderer, screen.boardRect, markedSquaresBoard);
           }
           else
           {
@@ -317,7 +363,8 @@ int main(int argc, char* argv[])
       
       // fprintf(stdout, "Mouse: (%d, %d)\n", event.motion.x, event.motion.y);
 
-      mouseX = event.motion.x, mouseY = event.motion.y;
+      screen.mouseX = event.motion.x;
+      screen.mouseY = event.motion.y;
     }
     else if(event.type == SDL_WINDOWEVENT)
     {
@@ -328,81 +375,28 @@ int main(int argc, char* argv[])
 
         // SDL_SetWindowSize(screen.window, newWidth, newHeight);
 
-        // fprintf(stdout, "Window: %dx%d\n", screen.width, screen.height);
-
-
-        boardRect = board_rect_get(screen.width, screen.height);
+        screen.boardRect = board_rect_get(screen.width, screen.height);
       }
     }
 
     Uint32 currentTicks = SDL_GetTicks();
 
-    if(currentTicks - lastTicks < frameTicks) continue;
-
-    lastTicks = currentTicks;
-
-
-    SDL_RenderClear(screen.renderer);
-
-    // Render board squares
-    texture_rect_render(screen.renderer, squaresTexture, boardRect);
-
-    // Render check markings
-    // texture_rect_render(screen.renderer, squaresTexture, boardRect);
-
-    // Render moved markings
-
-    if(grabbedSquare != SQUARE_NONE)
+    if(currentTicks - lastTicks >= frameTicks)
     {
-      texture_square_render(screen.renderer, MOVED_SQUARE_TEXTURE, boardRect, grabbedSquare);
+      lastTicks = currentTicks;
+
+      screen_display(screen, boardTextures, holdingPiece);
     }
-    // texture_rect_render(screen.renderer, squaresTexture, boardRect);
-
-    // Render possible squares
-    if(grabbedSquare != SQUARE_NONE)
-    {
-      texture_rect_render(screen.renderer, movesTexture, boardRect);
-    }
-
-    // Render markings by user
-    U64 markedSquaresBoardCopy = markedSquaresBoard;
-  
-    int loopCount = 0;
-    while(markedSquaresBoardCopy && loopCount++ < 64)
-    {
-      int index = board_ls1b_index(markedSquaresBoardCopy);
-
-      texture_square_render(screen.renderer, MARKED_SQUARE_TEXTURE, boardRect, index);
-      
-      markedSquaresBoardCopy = BOARD_SQUARE_POP(markedSquaresBoardCopy, index);
-    }
-
-    // Render pieces
-    texture_rect_render(screen.renderer, piecesTexture, boardRect);
-
-
-    // Render arrows
-    // texture_rect_render(screen.renderer, squaresTexture, boardRect);
-
-
-    if(holdingPiece != PIECE_NONE)
-    {
-      texture_pixels_center_render(screen.renderer, PIECE_TEXTURES[holdingPiece], mouseX, mouseY, 100, 100);
-    }
-
-    SDL_RenderPresent(screen.renderer);
   }
   while(event.type != SDL_QUIT);
 
 
-  SDL_DestroyTexture(squaresTexture);
-  SDL_DestroyTexture(piecesTexture);
+  board_textures_destroy(&boardTextures);
+
+  board_square_textures_destroy();
 
 
-  screen_textures_destroy();
-
-
-  screen_destroy(screen);
+  screen_destroy(&screen);
 
 
   sdl_drivers_quit();

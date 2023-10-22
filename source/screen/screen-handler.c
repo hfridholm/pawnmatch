@@ -1,10 +1,23 @@
 #include "../screen.h"
 
+// #include <stdarg.h>
+// https://www.geeksforgeeks.org/variadic-functions-in-c/
+
+void error_print(char* format, ...)
+{
+  fprintf(stderr, "ERROR: %s\n", format);
+}
+
+void info_print(char* format, ...)
+{
+  fprintf(stdout, "INFO: %s\n", format);
+}
+
 bool window_create(SDL_Window** window, int width, int height, const char title[])
 {
   if((*window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL)) == NULL)
   {
-    fprintf(stderr, "SDL_CreateWindow: %s\n", SDL_GetError());
+    error_print("SDL_CreateWindow: %s", SDL_GetError());
 
     return false;
   }
@@ -16,15 +29,27 @@ bool window_create(SDL_Window** window, int width, int height, const char title[
   return true;
 }
 
+void window_destroy(SDL_Window** window)
+{
+  SDL_DestroyWindow(*window);
+  *window = NULL;
+}
+
 bool renderer_create(SDL_Renderer** renderer, SDL_Window* window)
 {
   if((*renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC)) == NULL)
   {
-    fprintf(stderr, "SDL_CreateRenderer: %s\n", SDL_GetError());
+    error_print("SDL_CreateRenderer: %s", SDL_GetError());
 
     return false;
   }
   return true;
+}
+
+void renderer_destroy(SDL_Renderer** renderer)
+{
+  SDL_DestroyRenderer(*renderer);
+  *renderer = NULL;
 }
 
 bool screen_create(Screen* screen, int width, int height, const char title[])
@@ -40,14 +65,18 @@ bool screen_create(Screen* screen, int width, int height, const char title[])
   screen->width = width;
   screen->height = height;
 
+  info_print("Created Screen");
+
   return true;
 }
 
-void screen_destroy(Screen screen)
+void screen_destroy(Screen* screen)
 {
-  if(screen.renderer != NULL) SDL_DestroyRenderer(screen.renderer);
+  renderer_destroy(&screen->renderer);
 
-  if(screen.window != NULL) SDL_DestroyWindow(screen.window);
+  window_destroy(&screen->window);
+
+  info_print("Destroyed Screen");
 }
 
 void sdl_drivers_quit()
@@ -62,6 +91,8 @@ void sdl_drivers_quit()
   TTF_Quit();
 
   Mix_Quit();
+
+  info_print("Quitted SDL Drivers");
 }
 
 bool sdl_drivers_init()
@@ -96,5 +127,8 @@ bool sdl_drivers_init()
     
     return false;
   }
+
+  info_print("Initiated SDL Drivers");
+
   return true;
 }

@@ -1,5 +1,12 @@
 #include "../screen.h"
 
+void texture_destroy(SDL_Texture** texture)
+{
+  SDL_DestroyTexture(*texture);
+
+  *texture = NULL;
+}
+
 bool render_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height)
 {
   // https://stackoverflow.com/questions/24241974/sdl2-generate-fully-transparent-texture
@@ -8,7 +15,7 @@ bool render_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int wi
 
   if(*texture == NULL)
   {
-    fprintf(stderr, "SDL_CreateTexture: %s\n", SDL_GetError());
+    error_print("SDL_CreateTexture: %s", SDL_GetError());
 
     return false;
   }
@@ -20,9 +27,11 @@ bool render_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int wi
 
 bool texture_rect_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect destRect)
 {
+  if(texture == NULL || renderer == NULL) return false;
+
   if(SDL_RenderCopy(renderer, texture, NULL, &destRect) != 0)
   {
-    fprintf(stderr, "SDL_RenderCopy: %s\n", SDL_GetError());
+    error_print("SDL_RenderCopy: %s\n", SDL_GetError());
 
     return false;
   }
@@ -46,7 +55,7 @@ bool image_surface_load(SDL_Surface** surface, const char filePath[])
 {
   if((*surface = IMG_Load(filePath)) == NULL)
   {
-    fprintf(stderr, "IMG_Load: %s\n", IMG_GetError());
+    error_print("img_load: %s", IMG_GetError());
 
     return false;
   }
@@ -68,7 +77,7 @@ bool image_texture_load(SDL_Texture** texture, SDL_Renderer* renderer, const cha
 
   if(*texture == NULL)
   {
-    fprintf(stderr, "SDL_CreateTextureFromSurface: %s\n", SDL_GetError());
+    error_print("SDL_CreateTextureFromSurface: %s", SDL_GetError());
 
     return false;
   }

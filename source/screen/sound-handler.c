@@ -10,7 +10,7 @@ bool chunk_load(Mix_Chunk** chunk, const char filePath[])
 {
   if((*chunk = Mix_LoadWAV(filePath)) == NULL)
   {
-    fprintf(stderr, "Mix_LoadWAV: %s\n", Mix_GetError());
+    error_print("Mix_LoadWAV: %s", Mix_GetError());
 
     return false;
   }
@@ -21,7 +21,7 @@ bool music_load(Mix_Music** music, const char filePath[])
 {
   if((*music = Mix_LoadMUS(filePath)) == NULL)
   {
-    fprintf(stderr, "Mix_LoadMUS: %s\n", Mix_GetError());
+    error_print("Mix_LoadMUS: %s", Mix_GetError());
 
     return false;
   }
@@ -52,7 +52,7 @@ bool chunk_play(Mix_Chunk* chunk)
 {
   if(Mix_PlayChannel(-1, chunk, 1) == -1)
   {
-    fprintf(stderr, "Mix_PlayChannel: %s\n", Mix_GetError());
+    error_print("Mix_PlayChannel: %s", Mix_GetError());
 
     return false;
   }
