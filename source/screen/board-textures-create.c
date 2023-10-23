@@ -246,14 +246,14 @@ bool moves_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int wid
   return true;
 }
 
-void board_textures_create(BoardTextures* boardTextures, Screen screen, Position position)
+void screen_board_textures_create(ScreenBoardTextures* boardTextures, Screen screen, Position position)
 {
-  squares_texture_create(&boardTextures->squares, screen.renderer, screen.boardRect.w, screen.boardRect.h);
+  squares_texture_create(&boardTextures->squares, screen.renderer, screen.board.rect.w, screen.board.rect.h);
 
-  pieces_texture_create(&boardTextures->pieces, screen.renderer, screen.boardRect.w, screen.boardRect.h, position, SQUARE_NONE);
+  pieces_texture_create(&boardTextures->pieces, screen.renderer, screen.board.rect.w, screen.board.rect.h, position, SQUARE_NONE);
 }
 
-void board_textures_destroy(BoardTextures* boardTextures)
+void screen_board_textures_destroy(ScreenBoardTextures* boardTextures)
 {
   texture_destroy(&boardTextures->squares);
 
@@ -268,4 +268,6 @@ void board_textures_destroy(BoardTextures* boardTextures)
   texture_destroy(&boardTextures->moves);
 
   texture_destroy(&boardTextures->arrows);
+
+  info_print("Destroyed board textures");
 }

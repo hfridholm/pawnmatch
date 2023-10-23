@@ -106,7 +106,7 @@ void piece_textures_destroy()
   }
 }
 
-bool board_square_textures_load(SDL_Renderer* renderer)
+bool screen_board_base_textures_load(SDL_Renderer* renderer)
 {
   square_textures_load(renderer);
 
@@ -119,7 +119,7 @@ bool board_square_textures_load(SDL_Renderer* renderer)
   return true;
 }
 
-void board_square_textures_destroy()
+void screen_board_base_textures_destroy()
 {
   square_textures_destroy();
 

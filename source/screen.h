@@ -10,15 +10,15 @@
 
 typedef struct
 {
-  int width, height;
+  Square grabbedSquare;
+  Square markedSquare; // Delete or change this to bool
 
-  SDL_Window* window;
-  SDL_Renderer* renderer;
+  Piece holdingPiece;
 
-  SDL_Rect boardRect;
+  Square rightHoldingSquare;
 
-  int mouseX, mouseY;
-} Screen;
+  U64 markedSquaresBoard;
+} ScreenBoardMeta;
 
 typedef struct
 {
@@ -29,7 +29,30 @@ typedef struct
   SDL_Texture* marks;   // Every square the user has marked
   SDL_Texture* pieces;  // The pieces (except the one the user holds) 
   SDL_Texture* arrows;  // Every arrow the user has drawn
-} BoardTextures;
+} ScreenBoardTextures;
+
+typedef struct
+{
+  SDL_Rect rect;
+  
+  ScreenBoardTextures textures;
+
+  ScreenBoardMeta meta;
+}
+ScreenBoard;
+
+typedef struct
+{
+  int width, height;
+
+  SDL_Window* window;
+  SDL_Renderer* renderer;
+
+  int mouseX, mouseY;
+
+  ScreenBoard board;
+}
+Screen;
 
 extern void info_print(char* format, ...);
 
@@ -64,5 +87,9 @@ extern bool texture_square_render(SDL_Renderer* renderer, SDL_Texture* texture, 
 extern bool screen_texture_square_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect boardRect, Square square);
 
 extern void texture_destroy(SDL_Texture** texture);
+
+extern void screen_event_handler(Screen* screen, Position* position, SDL_Event event);
+
+extern void screen_display(Screen screen);
 
 #endif // SCREEN_H
