@@ -7,8 +7,11 @@ void texture_destroy(SDL_Texture** texture)
   *texture = NULL;
 }
 
+// Clears the texture beforehand
 bool render_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height)
 {
+  texture_destroy(texture);
+
   // https://stackoverflow.com/questions/24241974/sdl2-generate-fully-transparent-texture
 
   *texture = SDL_CreateTexture(renderer, 0, SDL_TEXTUREACCESS_TARGET, width, height);

@@ -7,9 +7,43 @@ extern Move create_move(U64 boards[12], Square sourceSquare, Square targetSquare
 
 extern SDL_Rect board_rect(int screenWidth, int screenHeight);
  
-extern void screen_board_textures_destroy(ScreenBoardTextures* boardTextures);
-
 extern void screen_board_textures_create(ScreenBoardTextures* boardTextures, Screen screen, Position position);
+
+void screen_board_piece_ungrab(Screen* screen)
+{
+  screen->board.meta.markedSquare = SQUARE_NONE;
+  screen->board.meta.grabbedSquare = SQUARE_NONE;
+  
+  texture_destroy(&screen->board.textures.moves);
+}
+
+void screen_move_make(Screen* screen, Position* position, Move move)
+{
+  make_move(position, move);
+
+  screen_board_piece_ungrab(screen);
+
+  // Update the check square texture
+  check_texture_create(&screen->board.textures.check, screen->renderer, screen->board.rect.w, screen->board.rect.h, *position);
+
+  // Update the pieces texture
+  pieces_texture_create(&screen->board.textures.pieces, screen->renderer, screen->board.rect.w, screen->board.rect.h, *position, SQUARE_NONE);
+}
+
+void screen_board_piece_grab(Screen* screen, Position position, Square square)
+{
+  Piece piece = boards_square_piece(position.boards, square);
+
+  // Assign grabbed and holding piece
+  screen->board.meta.grabbedSquare = square;
+  screen->board.meta.holdingPiece = piece;
+
+  // Update pieces texture to remove the holding piece
+  pieces_texture_create(&screen->board.textures.pieces, screen->renderer, screen->board.rect.w, screen->board.rect.h, position, screen->board.meta.grabbedSquare);
+
+  // Create the texture that displays valid moves
+  moves_texture_create(&screen->board.textures.moves, screen->renderer, screen->board.rect.w, screen->board.rect.h, position, screen->board.meta.grabbedSquare);
+}
 
 // When the mouse is clicked:
 // - all marks disappear
@@ -31,46 +65,19 @@ void screen_event_mouse_down_left_handler(Screen* screen, Position* position, SD
 
     if(move_fully_legal(*position, move))
     {
-      make_move(position, move);
+      screen_move_make(screen, position, move);
 
-      screen->board.meta.markedSquare = SQUARE_NONE;
-      screen->board.meta.grabbedSquare = SQUARE_NONE;
-
-
-      texture_destroy(&screen->board.textures.moves);
-
-      texture_destroy(&screen->board.textures.check);
-
-      check_texture_create(&screen->board.textures.check, screen->renderer, screen->board.rect.w, screen->board.rect.h, *position);
-
-      texture_destroy(&screen->board.textures.pieces);
-
-      pieces_texture_create(&screen->board.textures.pieces, screen->renderer, screen->board.rect.w, screen->board.rect.h, *position, SQUARE_NONE);
+      return;
     }
   }
 
-  // If the user cant make a move or it was an illegal move
+  // Here: If the user cant make a move or it was an illegal move
 
-  Piece piece = boards_square_piece(position->boards, square); 
-
-  if(piece != PIECE_NONE) 
+  if(BOARD_SQUARE_GET(position->covers[SIDE_BOTH], square)) 
   {
-    screen->board.meta.grabbedSquare = square;
-    screen->board.meta.holdingPiece = piece;
-
-    texture_destroy(&screen->board.textures.pieces);
-
-    pieces_texture_create(&screen->board.textures.pieces, screen->renderer, screen->board.rect.w, screen->board.rect.h, *position, screen->board.meta.grabbedSquare);
-
-    texture_destroy(&screen->board.textures.moves);
-
-    moves_texture_create(&screen->board.textures.moves, screen->renderer, screen->board.rect.w, screen->board.rect.h, *position, screen->board.meta.grabbedSquare);
+    screen_board_piece_grab(screen, *position, square);
   }
-  else
-{
-    screen->board.meta.markedSquare = SQUARE_NONE;
-    screen->board.meta.grabbedSquare = SQUARE_NONE;
-  }
+  else screen_board_piece_ungrab(screen);
 }
 
 void screen_event_mouse_down_right_handler(Screen* screen, Position* position, SDL_Event event)
@@ -94,6 +101,13 @@ void screen_event_mouse_down_handler(Screen* screen, Position* position, SDL_Eve
   }
 }
 
+void screen_board_piece_release(Screen* screen, Position position)
+{
+  screen->board.meta.holdingPiece = PIECE_NONE;
+
+  pieces_texture_create(&screen->board.textures.pieces, screen->renderer, screen->board.rect.w, screen->board.rect.h, position, SQUARE_NONE);
+}
+
 void screen_event_mouse_up_left_handler(Screen* screen, Position* position, SDL_Event event)
 {
   Square square = screen_pixels_square(screen->board.rect, event.button.x, event.button.y);
@@ -105,17 +119,7 @@ void screen_event_mouse_up_left_handler(Screen* screen, Position* position, SDL_
 
     if(move_fully_legal(*position, move))
     {
-      make_move(position, move);
-
-      screen->board.meta.markedSquare = SQUARE_NONE;
-      screen->board.meta.grabbedSquare = SQUARE_NONE;
-
-
-      texture_destroy(&screen->board.textures.moves);
-
-      texture_destroy(&screen->board.textures.check);
-
-      check_texture_create(&screen->board.textures.check, screen->renderer, screen->board.rect.w, screen->board.rect.h, *position);
+      screen_move_make(screen, position, move);
     }
   }
 
@@ -123,10 +127,7 @@ void screen_event_mouse_up_left_handler(Screen* screen, Position* position, SDL_
   // stop holding it
   if(screen->board.meta.markedSquare != SQUARE_NONE && screen->board.meta.markedSquare == square)
   {
-    screen->board.meta.markedSquare = SQUARE_NONE;
-    screen->board.meta.grabbedSquare = SQUARE_NONE;
-
-    texture_destroy(&screen->board.textures.moves);
+    screen_board_piece_ungrab(screen);
   }
   else if(square != screen->board.meta.markedSquare && screen->board.meta.grabbedSquare != SQUARE_NONE)
   {
@@ -135,12 +136,24 @@ void screen_event_mouse_up_left_handler(Screen* screen, Position* position, SDL_
 
   if(screen->board.meta.holdingPiece != PIECE_NONE)
   {
-    screen->board.meta.holdingPiece = PIECE_NONE;
-
-    texture_destroy(&screen->board.textures.pieces);
-
-    pieces_texture_create(&screen->board.textures.pieces, screen->renderer, screen->board.rect.w, screen->board.rect.h, *position, SQUARE_NONE);
+    screen_board_piece_release(screen, *position);
   }
+}
+
+void screen_board_square_mark(Screen* screen, Square square)
+{
+  if(BOARD_SQUARE_GET(screen->board.meta.markedSquaresBoard, square))
+  {
+    screen->board.meta.markedSquaresBoard = BOARD_SQUARE_POP(screen->board.meta.markedSquaresBoard, square);
+  }
+  else screen->board.meta.markedSquaresBoard = BOARD_SQUARE_SET(screen->board.meta.markedSquaresBoard, square);
+
+  marks_texture_create(&screen->board.textures.marks, screen->renderer, screen->board.rect.w, screen->board.rect.h, screen->board.meta.markedSquaresBoard);
+}
+
+void screen_board_arrow_create(Screen* screen, Square sourceSquare, Square targetSquare)
+{
+  fprintf(stdout, "Create arrow: (%d -> %d)\n", sourceSquare, targetSquare);
 }
 
 void screen_event_mouse_up_right_handler(Screen* screen, Position* position, SDL_Event event)
@@ -151,20 +164,9 @@ void screen_event_mouse_up_right_handler(Screen* screen, Position* position, SDL
   {
     if(screen->board.meta.rightHoldingSquare == square)
     {
-      if(BOARD_SQUARE_GET(screen->board.meta.markedSquaresBoard, square))
-      {
-        screen->board.meta.markedSquaresBoard = BOARD_SQUARE_POP(screen->board.meta.markedSquaresBoard, square);
-      }
-      else screen->board.meta.markedSquaresBoard = BOARD_SQUARE_SET(screen->board.meta.markedSquaresBoard, square);
-
-      texture_destroy(&screen->board.textures.marks);
-
-      marks_texture_create(&screen->board.textures.marks, screen->renderer, screen->board.rect.w, screen->board.rect.h, screen->board.meta.markedSquaresBoard);
+      screen_board_square_mark(screen, square);
     }
-    else
-  {
-      fprintf(stdout, "Create arrow: (%d -> %d)\n", screen->board.meta.rightHoldingSquare, square);
-    }
+    else screen_board_arrow_create(screen, screen->board.meta.rightHoldingSquare, square);
   }
 
   screen->board.meta.rightHoldingSquare = SQUARE_NONE;
@@ -184,23 +186,23 @@ void screen_event_mouse_up_handler(Screen* screen, Position* position, SDL_Event
   }
 }
 
+void music_toggle()
+{
+  fprintf(stdout, "Toggled music on or off\n");
+}
+
 void screen_event_key_down_handler(Screen* screen, Position* position, SDL_Event event)
 {
   switch(event.key.keysym.sym)
   {
     case SDLK_SPACE:
-      // Pause or resume music
-      // music_toggle();
+      music_toggle();
       break;
   }
 }
 
 void screen_event_mouse_motion_handler(Screen* screen, Position* position, SDL_Event event)
 {
-  // If holding a piece, update the piece's position
-
-  // fprintf(stdout, "Mouse: (%d, %d)\n", event.motion.x, event.motion.y);
-
   screen->mouseX = event.motion.x;
   screen->mouseY = event.motion.y;
 }
@@ -214,11 +216,9 @@ void screen_event_window_resize_handler(Screen* screen, Position* position, SDL_
   screen->width = event.window.data1;
   screen->height = event.window.data2;
 
-  // SDL_SetWindowSize(screen->window, newWidth, newHeight);
+  // SDL_SetWindowSize(screen->window, screen->width, screen->height);
 
   screen->board.rect = board_rect(screen->width, screen->height);
-
-  screen_board_textures_destroy(&screen->board.textures);
 
   screen_board_textures_create(&screen->board.textures, *screen, *position);
 }
