@@ -28,6 +28,37 @@ bool render_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int wi
   return true;
 }
 
+bool render_target_texture_setup(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height)
+{
+  if(!render_texture_create(texture, renderer, width, height)) return false;
+
+  if(SDL_SetRenderTarget(renderer, *texture) != 0)
+  {
+    error_print("SDL_SetRenderTarget: %s", SDL_GetError());
+
+    texture_destroy(texture);
+
+    return false;
+  }
+  return true;
+}
+
+bool render_target_texture_render(SDL_Texture** texture, SDL_Renderer* renderer)
+{
+  if(SDL_SetRenderTarget(renderer, NULL) != 0)
+  {
+    error_print("SDL_SetRenderTarget: %s", SDL_GetError());
+
+    texture_destroy(texture);
+
+    return false;
+  }
+
+  SDL_RenderPresent(renderer);
+
+  return true;
+}
+
 bool texture_rect_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect destRect)
 {
   if(texture == NULL || renderer == NULL) return false;
