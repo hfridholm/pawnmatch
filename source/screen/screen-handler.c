@@ -90,6 +90,8 @@ bool screen_create(Screen* screen, int width, int height, const char title[])
 
   screen->board.textures = (ScreenBoardTextures) {0};
 
+  screen->backgroundTexture = NULL;
+
   screen_board_meta_init(&screen->board.meta);
 
   // Loading base textures for the board
@@ -102,6 +104,8 @@ bool screen_create(Screen* screen, int width, int height, const char title[])
 
 void screen_destroy(Screen* screen)
 {
+  texture_destroy(&screen->backgroundTexture);
+
   screen_board_textures_destroy(&screen->board.textures);
 
   screen_board_base_textures_destroy();

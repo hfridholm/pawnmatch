@@ -51,6 +51,8 @@ void screen_display(Screen screen)
 {
   SDL_RenderClear(screen.renderer);
 
+  texture_pixels_crop_render(screen.renderer, screen.backgroundTexture, 0, 0, screen.width, screen.height);
+
   screen_board_render(screen);
 
   SDL_RenderPresent(screen.renderer);

@@ -59,11 +59,12 @@ bool render_target_texture_render(SDL_Texture** texture, SDL_Renderer* renderer)
   return true;
 }
 
-bool texture_rect_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect destRect)
+bool texture_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect* srcrect, SDL_Rect* dstrect)
 {
+  // Maybe remove / comment out this line, because of useful error message
   if(texture == NULL || renderer == NULL) return false;
 
-  if(SDL_RenderCopy(renderer, texture, NULL, &destRect) != 0)
+  if(SDL_RenderCopy(renderer, texture, srcrect, dstrect) != 0)
   {
     error_print("SDL_RenderCopy: %s\n", SDL_GetError());
 
@@ -72,17 +73,59 @@ bool texture_rect_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect 
   return true;
 }
 
+bool texture_rect_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect rect)
+{
+  return texture_render(renderer, texture, NULL, &rect);
+}
+
+bool texture_rect_crop_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect dstrect)
+{
+  int width = 0, height = 0;
+
+  if(!texture_width_height(texture, &width, &height)) return false;
+
+  float ratio = (float) (width * dstrect.h) / (float) (height * dstrect.w);
+
+  if(ratio < 1.0) height *= (ratio / 1);
+  else            width  *= (1 / ratio);
+
+  SDL_Rect srcrect = {0, 0, width, height};
+
+  return texture_render(renderer, texture, &srcrect, &dstrect);
+}
+
 bool texture_pixels_render(SDL_Renderer* renderer, SDL_Texture* texture, int x, int y, int width, int height)
 {
-  SDL_Rect destRect = {x, y, width, height};
+  SDL_Rect rect = {x, y, width, height};
 
-  return texture_rect_render(renderer, texture, destRect);
+  return texture_rect_render(renderer, texture, rect);
+}
+
+bool texture_pixels_crop_render(SDL_Renderer* renderer, SDL_Texture* texture, int x, int y, int width, int height)
+{
+  SDL_Rect rect = {x, y, width, height};
+
+  return texture_rect_crop_render(renderer, texture, rect);
 }
 
 bool texture_pixels_center_render(SDL_Renderer* renderer, SDL_Texture* texture, int x, int y, int width, int height)
 {
   // Add an offset to x and y depending on width and height
   return texture_pixels_render(renderer, texture, x - (width / 2), y - (height / 2), width, height);
+}
+
+bool texture_width_height(SDL_Texture* texture, int* width, int* height)
+{
+  // By adding this line, you miss getting an useful error message
+  // if(texture == NULL) return false;
+
+  if(SDL_QueryTexture(texture, NULL, NULL, width, height) != 0)
+  {
+    error_print("SDL_QueryTexture: %s", SDL_GetError());
+
+    return false;
+  }
+  return true;
 }
 
 bool image_surface_load(SDL_Surface** surface, const char filePath[])

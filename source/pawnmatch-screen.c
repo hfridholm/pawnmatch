@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
 
   Screen screen;
 
-  if(!screen_create(&screen, 500, 500, "PawnMatch"))
+  if(!screen_create(&screen, 600, 500, "PawnMatch"))
   {
     sdl_drivers_quit();
 
@@ -119,6 +119,8 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  // screen_background_texture_create();
+  image_texture_load(&screen.backgroundTexture, screen.renderer, "../source/screen/images/background.png");
 
   // Creating the basic textures for the board 
   screen_board_textures_create(&screen.board.textures, screen, position);

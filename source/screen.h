@@ -50,6 +50,8 @@ typedef struct
 
   int mouseX, mouseY;
 
+  SDL_Texture* backgroundTexture;
+
   ScreenBoard board;
 }
 Screen;
@@ -91,5 +93,11 @@ extern void texture_destroy(SDL_Texture** texture);
 extern void screen_event_handler(Screen* screen, Position* position, SDL_Event event);
 
 extern void screen_display(Screen screen);
+
+extern bool texture_width_height(SDL_Texture* texture, int* width, int* height);
+
+extern bool texture_rect_crop_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect dstrect);
+
+extern bool texture_pixels_crop_render(SDL_Renderer* renderer, SDL_Texture* texture, int x, int y, int width, int height);
 
 #endif // SCREEN_H
