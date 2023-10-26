@@ -97,6 +97,8 @@ bool screen_create(Screen* screen, int width, int height, const char title[])
   // Loading base textures for the board
   screen_board_base_textures_load(screen->renderer);
 
+  background_base_textures_load(screen->renderer);
+
   info_print("Created Screen");
 
   return true;
@@ -109,6 +111,8 @@ void screen_destroy(Screen* screen)
   screen_board_textures_destroy(&screen->board.textures);
 
   screen_board_base_textures_destroy();
+
+  background_base_textures_destroy();
 
 
   renderer_destroy(&screen->renderer);

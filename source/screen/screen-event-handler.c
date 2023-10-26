@@ -221,6 +221,8 @@ void screen_event_window_resize_handler(Screen* screen, Position* position, SDL_
   screen->board.rect = board_rect(screen->width, screen->height);
 
   screen_board_textures_create(&screen->board.textures, *screen, *position);
+
+  background_texture_create(&screen->backgroundTexture, screen->renderer, screen->width, screen->height);
 }
 
 void screen_event_window_handler(Screen* screen, Position* position, SDL_Event event)

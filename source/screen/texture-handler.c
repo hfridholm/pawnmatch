@@ -160,3 +160,14 @@ bool image_texture_load(SDL_Texture** texture, SDL_Renderer* renderer, const cha
   }
   return true;
 }
+
+bool texture_rect_texture(SDL_Texture** target, SDL_Renderer* renderer, SDL_Texture* source, SDL_Rect srcrect)
+{
+  SDL_Rect dstrect = {0, 0, srcrect.w, srcrect.h};
+
+  if(!render_target_texture_setup(target, renderer, dstrect.w, dstrect.h)) return false;
+
+  texture_render(renderer, source, &srcrect, &dstrect);
+
+  return render_target_texture_render(target, renderer);
+}

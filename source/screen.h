@@ -100,4 +100,16 @@ extern bool texture_rect_crop_render(SDL_Renderer* renderer, SDL_Texture* textur
 
 extern bool texture_pixels_crop_render(SDL_Renderer* renderer, SDL_Texture* texture, int x, int y, int width, int height);
 
+extern bool background_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height);
+
+extern bool background_base_textures_load(SDL_Renderer* renderer);
+
+extern void background_base_textures_destroy(void);
+
+extern bool texture_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect* srcrect, SDL_Rect* dstrect);
+
+extern bool image_texture_load(SDL_Texture** texture, SDL_Renderer* renderer, const char filePath[]);
+
+extern bool texture_rect_texture(SDL_Texture** target, SDL_Renderer* renderer, SDL_Texture* source, SDL_Rect srcrect);
+
 #endif // SCREEN_H

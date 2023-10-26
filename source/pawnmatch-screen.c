@@ -119,10 +119,9 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  // screen_background_texture_create();
-  image_texture_load(&screen.backgroundTexture, screen.renderer, "../source/screen/images/background.png");
 
-  // Creating the basic textures for the board 
+  background_texture_create(&screen.backgroundTexture, screen.renderer, screen.width, screen.height);
+
   screen_board_textures_create(&screen.board.textures, screen, position);
 
   screen_display(screen);
