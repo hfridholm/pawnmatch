@@ -8,6 +8,7 @@ extern Square screen_pixels_square(SDL_Rect boardRect, int width, int height);
 extern bool texture_pixels_center_render(SDL_Renderer* renderer, SDL_Texture* texture, int x, int y, int width, int height);
 
 extern SDL_Texture* HOVER_SQUARE_TEXTURE;
+extern SDL_Texture* MOVED_SQUARE_TEXTURE;
 
 extern SDL_Texture* PIECE_TEXTURES[12];
 
@@ -19,6 +20,11 @@ void screen_board_render(Screen screen)
   texture_rect_render(screen.renderer, screen.board.textures.check, screen.board.rect);
 
   texture_rect_render(screen.renderer, screen.board.textures.moved, screen.board.rect);
+
+  if(screen.board.meta.grabbedSquare != SQUARE_NONE)
+  {
+    screen_texture_square_render(screen.renderer, MOVED_SQUARE_TEXTURE, screen.board.rect, screen.board.meta.grabbedSquare);
+  }
 
   texture_rect_render(screen.renderer, screen.board.textures.moves, screen.board.rect);
 

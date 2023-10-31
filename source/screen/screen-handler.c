@@ -68,6 +68,8 @@ void screen_board_meta_init(ScreenBoardMeta* screenBoardMeta)
   screenBoardMeta->rightHoldingSquare = SQUARE_NONE;
   screenBoardMeta->markedSquaresBoard = 0ULL;
 
+  memset(screenBoardMeta->arrows, 0, sizeof(screenBoardMeta->arrows));
+
   info_print("Initialized screen board meta");
 }
 

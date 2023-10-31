@@ -2,6 +2,8 @@
 
 void texture_destroy(SDL_Texture** texture)
 {
+  if(*texture == NULL) return;
+
   SDL_DestroyTexture(*texture);
 
   *texture = NULL;
@@ -170,4 +172,11 @@ bool texture_rect_texture(SDL_Texture** target, SDL_Renderer* renderer, SDL_Text
   texture_render(renderer, source, &srcrect, &dstrect);
 
   return render_target_texture_render(target, renderer);
+}
+
+bool texture_pixels_texture(SDL_Texture** target, SDL_Renderer* renderer, SDL_Texture* source, int x, int y, int width, int height)
+{
+  SDL_Rect rect = {x, y, width, height};
+
+  return texture_rect_texture(target, renderer, source, rect);
 }

@@ -18,6 +18,7 @@ SDL_Texture* HOVER_SQUARE_TEXTURE;
 
 SDL_Texture* ARROW_HEAD_TEXTURE;
 SDL_Texture* ARROW_BODY_TEXTURE;
+SDL_Texture* ARROW_TALE_TEXTURE;
 
 
 const char* PIECE_TYPE_STRINGS[6] = {"pawn", "knight", "bishop", "rook", "queen", "king"};
@@ -85,10 +86,36 @@ void other_textures_destroy(void)
   texture_destroy(&CHECK_SQUARE_TEXTURE);
 
   texture_destroy(&HOVER_SQUARE_TEXTURE);
+}
 
-  texture_destroy(&ARROW_HEAD_TEXTURE);
+bool arrow_base_textures_load(SDL_Renderer* renderer)
+{
+  SDL_Texture* arrowTexture;
+
+  if(!image_texture_load(&arrowTexture, renderer, "../source/screen/images/arrow.png")) return false;
+
+  texture_pixels_texture(&ARROW_TALE_TEXTURE, renderer, arrowTexture, 0, 0, 16, 16);
+
+  texture_pixels_texture(&ARROW_BODY_TEXTURE, renderer, arrowTexture, 16, 0, 16, 16);
+
+  texture_pixels_texture(&ARROW_HEAD_TEXTURE, renderer, arrowTexture, 32, 0, 16, 16);
+
+  texture_destroy(&arrowTexture);
+
+  info_print("Loaded arrow base textures");
+
+  return true;
+}
+
+void arrow_base_textures_destroy(void)
+{
+  texture_destroy(&ARROW_TALE_TEXTURE);
 
   texture_destroy(&ARROW_BODY_TEXTURE);
+  
+  texture_destroy(&ARROW_HEAD_TEXTURE);
+
+  info_print("Destroyed arrow base textures");
 }
 
 void square_textures_destroy()
@@ -112,6 +139,8 @@ bool screen_board_base_textures_load(SDL_Renderer* renderer)
 
   piece_textures_load(renderer);
 
+  arrow_base_textures_load(renderer);
+
   other_textures_load(renderer);
 
   info_print("Loaded board square textures");
@@ -124,6 +153,8 @@ void screen_board_base_textures_destroy()
   square_textures_destroy();
 
   piece_textures_destroy();
+
+  arrow_base_textures_destroy();
 
   other_textures_destroy();
 

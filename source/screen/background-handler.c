@@ -42,6 +42,8 @@ bool background_base_textures_load(SDL_Renderer* renderer)
     texture_rect_texture(&BACKGROUND_SQUARE_TEXTURES[index], renderer, backgroundTexture, srcrect);
   }
 
+  texture_destroy(&backgroundTexture);
+
   BACKGROUND_SQUARE_WIDTH = squareWidth * BACKGROUND_SCALE_FACTOR;
   BACKGROUND_SQUARE_HEIGHT = squareHeight * BACKGROUND_SCALE_FACTOR;
 

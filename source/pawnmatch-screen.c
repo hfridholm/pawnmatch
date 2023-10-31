@@ -11,17 +11,17 @@ extern Square screen_pixels_square(SDL_Rect boardRect, int width, int height);
 
 extern bool texture_rect_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect destRect);
 
+extern bool texture_pixels_render(SDL_Renderer* renderer, SDL_Texture* texture, int x, int y, int width, int height);
+
 extern bool texture_pixels_center_render(SDL_Renderer* renderer, SDL_Texture* texture, int x, int y, int width, int height);
 
 extern SDL_Texture* PIECE_TEXTURES[12];
-
 
 extern void screen_destroy(Screen* screen);
 
 extern Move create_move(U64 boards[12], Square sourceSquare, Square targetSquare);
 
 extern void screen_board_textures_create(ScreenBoardTextures* boardTextures, Screen screen, Position position);
-
 
 extern bool image_texture_load(SDL_Texture** texture, SDL_Renderer* renderer, const char filePath[]);
 
@@ -90,8 +90,14 @@ const char FEN_START[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0
 
 extern SDL_Texture* HOVER_SQUARE_TEXTURE;
 
+extern void screen_board_arrow_create(Screen* screen, Square sourceSquare, Square targetSquare);
+
+extern SDL_Texture* MARK_SQUARE_TEXTURE;
+
 int main(int argc, char* argv[])
 {
+  // https://wiki.libsdl.org/SDL2/SDL_RenderFillRect
+
   init_all();
 
   Position position;
@@ -125,6 +131,7 @@ int main(int argc, char* argv[])
   screen_board_textures_create(&screen.board.textures, screen, position);
 
   screen_display(screen);
+
 
 
   Uint32 lastTicks = SDL_GetTicks();

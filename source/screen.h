@@ -18,6 +18,8 @@ typedef struct
   Square rightHoldingSquare;
 
   U64 markedSquaresBoard;
+
+  U64 arrows[64];
 } ScreenBoardMeta;
 
 typedef struct
@@ -84,6 +86,8 @@ extern bool check_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, 
 
 extern bool marks_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, U64 marks);
 
+extern bool arrows_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, const U64 arrows[64]);
+
 extern bool texture_square_render(SDL_Renderer* renderer, SDL_Texture* texture, int width, int height, Square square);
 
 extern bool screen_texture_square_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect boardRect, Square square);
@@ -111,5 +115,9 @@ extern bool texture_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rec
 extern bool image_texture_load(SDL_Texture** texture, SDL_Renderer* renderer, const char filePath[]);
 
 extern bool texture_rect_texture(SDL_Texture** target, SDL_Renderer* renderer, SDL_Texture* source, SDL_Rect srcrect);
+
+extern bool texture_pixels_texture(SDL_Texture** target, SDL_Renderer* renderer, SDL_Texture* source, int x, int y, int width, int height);
+
+extern bool arrow_straight_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, Square source, Square target);
 
 #endif // SCREEN_H

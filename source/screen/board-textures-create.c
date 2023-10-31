@@ -14,6 +14,8 @@ extern bool render_target_texture_render(SDL_Texture** texture, SDL_Renderer* re
 
 extern bool board_square_attacked(Position position, Square square, Side side);
 
+extern bool texture_pixels_render(SDL_Renderer* renderer, SDL_Texture* texture, int x, int y, int width, int height);
+
 
 extern SDL_Texture* WHITE_SQUARE_TEXTURE;
 extern SDL_Texture* BLACK_SQUARE_TEXTURE;
@@ -24,9 +26,6 @@ extern SDL_Texture* MOVED_SQUARE_TEXTURE;
 extern SDL_Texture* MARK_SQUARE_TEXTURE;
 extern SDL_Texture* CHECK_SQUARE_TEXTURE;
 extern SDL_Texture* MOVE_SQUARE_TEXTURE;
-
-extern SDL_Texture* ARROW_HEAD_TEXTURE;
-extern SDL_Texture* ARROW_BODY_TEXTURE;
 
 // The texture should be the same dimensions as the board
 bool marks_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, U64 marks)
@@ -41,6 +40,58 @@ bool marks_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int wid
     texture_square_render(renderer, MARK_SQUARE_TEXTURE, width, height, index);
 
     marks = BOARD_SQUARE_POP(marks, index);
+  }
+
+  return render_target_texture_render(texture, renderer);
+}
+
+bool arrow_textures_create(SDL_Texture* arrowTextures[4096], int* arrowAmount, SDL_Renderer* renderer, int width, int height, const U64 arrows[64])
+{
+  *arrowAmount = 0;
+
+  for(Square source = 0; source < BOARD_SQUARES; source++)
+  {
+    U64 targets = arrows[source];
+
+    int count = 0;
+    while(targets && count++ < BOARD_SQUARES)
+    {
+      int index = board_ls1b_index(targets);
+
+      arrow_straight_texture_create(&arrowTextures[(*arrowAmount)++], renderer, width, height, source, index);
+
+      targets = BOARD_SQUARE_POP(targets, index);
+    }
+  }
+  return true;
+}
+
+void textures_destroy(SDL_Texture* textures[], int amount)
+{
+  for(int index = 0; index < amount; index++)
+  {
+    texture_destroy(&textures[index]);
+  }
+}
+
+bool arrows_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, const U64 arrows[64])
+{
+  SDL_Texture* arrowTextures[4096];
+  int arrowAmount = 0;
+
+  if(!arrow_textures_create(arrowTextures, &arrowAmount, renderer, width, height, arrows)) return false;
+
+  if(!render_target_texture_setup(texture, renderer, width, height))
+  {
+    textures_destroy(arrowTextures, arrowAmount);
+    return false;
+  }
+
+  for(int index = 0; index < arrowAmount; index++)
+  {
+    texture_pixels_render(renderer, arrowTextures[index], 0, 0, width, height);
+
+    texture_destroy(&arrowTextures[index]);
   }
 
   return render_target_texture_render(texture, renderer);

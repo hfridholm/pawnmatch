@@ -9,6 +9,38 @@ extern SDL_Rect board_rect(int screenWidth, int screenHeight);
  
 extern void screen_board_textures_create(ScreenBoardTextures* boardTextures, Screen screen, Position position);
 
+void screen_board_piece_release(Screen* screen, Position position)
+{
+  screen->board.meta.holdingPiece = PIECE_NONE;
+
+  pieces_texture_create(&screen->board.textures.pieces, screen->renderer, screen->board.rect.w, screen->board.rect.h, position, SQUARE_NONE);
+}
+
+void screen_board_square_mark(Screen* screen, Square square)
+{
+  if(BOARD_SQUARE_GET(screen->board.meta.markedSquaresBoard, square))
+  {
+    screen->board.meta.markedSquaresBoard = BOARD_SQUARE_POP(screen->board.meta.markedSquaresBoard, square);
+  }
+  else screen->board.meta.markedSquaresBoard = BOARD_SQUARE_SET(screen->board.meta.markedSquaresBoard, square);
+
+  marks_texture_create(&screen->board.textures.marks, screen->renderer, screen->board.rect.w, screen->board.rect.h, screen->board.meta.markedSquaresBoard);
+}
+
+void screen_board_arrow_create(Screen* screen, Square source, Square target)
+{
+  if(source < 0 || source >= BOARD_SQUARES) return;
+  if(target < 0 || target >= BOARD_SQUARES) return;
+
+  if(BOARD_SQUARE_GET(screen->board.meta.arrows[source], target))
+  {
+    screen->board.meta.arrows[source] = BOARD_SQUARE_POP(screen->board.meta.arrows[source], target);
+  }
+  else screen->board.meta.arrows[source] = BOARD_SQUARE_SET(screen->board.meta.arrows[source], target);
+
+  arrows_texture_create(&screen->board.textures.arrows, screen->renderer, screen->board.rect.w, screen->board.rect.h, screen->board.meta.arrows);
+}
+
 void screen_board_piece_ungrab(Screen* screen)
 {
   screen->board.meta.markedSquare = SQUARE_NONE;
@@ -45,72 +77,48 @@ void screen_board_piece_grab(Screen* screen, Position position, Square square)
   moves_texture_create(&screen->board.textures.moves, screen->renderer, screen->board.rect.w, screen->board.rect.h, position, screen->board.meta.grabbedSquare);
 }
 
-// When the mouse is clicked:
-// - all marks disappear
-void screen_event_mouse_down_left_handler(Screen* screen, Position* position, SDL_Event event)
+bool pixels_inside_rect(SDL_Rect rect, int width, int height)
 {
-  screen->board.meta.markedSquaresBoard = 0ULL;
-
-  texture_destroy(&screen->board.textures.marks);
-
-
-  Square square = screen_pixels_square(screen->board.rect, event.button.x, event.button.y);
-
-
-  // If a square is marked and the user clicks on another square, try to make that move
-  if(screen->board.meta.markedSquare != SQUARE_NONE && screen->board.meta.markedSquare != square)
-  {
-    // Try to make the move (markedSquare -> square);
-    Move move = create_move(position->boards, screen->board.meta.markedSquare, square);
-
-    if(move_fully_legal(*position, move))
-    {
-      screen_move_make(screen, position, move);
-
-      return;
-    }
-  }
-
-  // Here: If the user cant make a move or it was an illegal move
-
-  if(BOARD_SQUARE_GET(position->covers[SIDE_BOTH], square)) 
-  {
-    screen_board_piece_grab(screen, *position, square);
-  }
-  else screen_board_piece_ungrab(screen);
+  return (width >= rect.x && width <= (rect.x + rect.w) && height >= rect.y && height <= (rect.y + rect.h));
 }
 
-void screen_event_mouse_down_right_handler(Screen* screen, Position* position, SDL_Event event)
+void screen_board_up_right_handler(Screen* screen, Position* position, SDL_Event event)
 {
   Square square = screen_pixels_square(screen->board.rect, event.button.x, event.button.y);
+
+  // If the user has clicked outside of the board, quit
+  if(square == SQUARE_NONE) return;
+
+  if(screen->board.meta.rightHoldingSquare != SQUARE_NONE && square != SQUARE_NONE)
+  {
+    if(screen->board.meta.rightHoldingSquare == square)
+    {
+      screen_board_square_mark(screen, square);
+    }
+    else screen_board_arrow_create(screen, screen->board.meta.rightHoldingSquare, square);
+  }
+
+  screen->board.meta.rightHoldingSquare = SQUARE_NONE;
+}
+
+void screen_board_down_right_handler(Screen* screen, Position* position, SDL_Event event)
+{
+  screen_board_piece_ungrab(screen);
+
+  Square square = screen_pixels_square(screen->board.rect, event.button.x, event.button.y);
+
+  // If the user has clicked outside of the board, quit
+  if(square == SQUARE_NONE) return;
 
   screen->board.meta.rightHoldingSquare = square;
 }
 
-void screen_event_mouse_down_handler(Screen* screen, Position* position, SDL_Event event)
-{
-  switch(event.button.button)
-  {
-    case SDL_BUTTON_LEFT:
-      screen_event_mouse_down_left_handler(screen, position, event);
-      break;
-
-    case SDL_BUTTON_RIGHT:
-      screen_event_mouse_down_right_handler(screen, position, event);
-      break;
-  }
-}
-
-void screen_board_piece_release(Screen* screen, Position position)
-{
-  screen->board.meta.holdingPiece = PIECE_NONE;
-
-  pieces_texture_create(&screen->board.textures.pieces, screen->renderer, screen->board.rect.w, screen->board.rect.h, position, SQUARE_NONE);
-}
-
-void screen_event_mouse_up_left_handler(Screen* screen, Position* position, SDL_Event event)
+void screen_board_up_left_handler(Screen* screen, Position* position, SDL_Event event)
 {
   Square square = screen_pixels_square(screen->board.rect, event.button.x, event.button.y);
+
+  // If the user has clicked outside of the board, quit
+  if(square == SQUARE_NONE) return;
 
   if(screen->board.meta.grabbedSquare != SQUARE_NONE && square != screen->board.meta.grabbedSquare)
   {
@@ -140,36 +148,92 @@ void screen_event_mouse_up_left_handler(Screen* screen, Position* position, SDL_
   }
 }
 
-void screen_board_square_mark(Screen* screen, Square square)
+// When the mouse is clicked:
+// - all marks disappear
+void screen_board_down_left_handler(Screen* screen, Position* position, SDL_Event event)
 {
-  if(BOARD_SQUARE_GET(screen->board.meta.markedSquaresBoard, square))
-  {
-    screen->board.meta.markedSquaresBoard = BOARD_SQUARE_POP(screen->board.meta.markedSquaresBoard, square);
-  }
-  else screen->board.meta.markedSquaresBoard = BOARD_SQUARE_SET(screen->board.meta.markedSquaresBoard, square);
+  Square square = screen_pixels_square(screen->board.rect, event.button.x, event.button.y);
 
-  marks_texture_create(&screen->board.textures.marks, screen->renderer, screen->board.rect.w, screen->board.rect.h, screen->board.meta.markedSquaresBoard);
+  // If the user has clicked outside of the board, quit
+  if(square == SQUARE_NONE) return;
+
+
+  screen->board.meta.markedSquaresBoard = 0ULL;
+
+  texture_destroy(&screen->board.textures.marks);
+
+  memset(screen->board.meta.arrows, 0, sizeof(screen->board.meta.arrows));
+
+  texture_destroy(&screen->board.textures.arrows);
+
+
+  // If a square is marked and the user clicks on another square, try to make that move
+  if(screen->board.meta.markedSquare != SQUARE_NONE && screen->board.meta.markedSquare != square)
+  {
+    // Try to make the move (markedSquare -> square);
+    Move move = create_move(position->boards, screen->board.meta.markedSquare, square);
+
+    if(move_fully_legal(*position, move))
+    {
+      screen_move_make(screen, position, move);
+
+      return;
+    }
+  }
+
+  // Here: If the user cant make a move or it was an illegal move
+
+  if(BOARD_SQUARE_GET(position->covers[SIDE_BOTH], square)) 
+  {
+    screen_board_piece_grab(screen, *position, square);
+  }
+  else screen_board_piece_ungrab(screen);
 }
 
-void screen_board_arrow_create(Screen* screen, Square sourceSquare, Square targetSquare)
+void screen_event_mouse_down_left_handler(Screen* screen, Position* position, SDL_Event event)
 {
-  fprintf(stdout, "Create arrow: (%d -> %d)\n", sourceSquare, targetSquare);
+  if(pixels_inside_rect(screen->board.rect, event.button.x, event.button.y))
+  {
+    screen_board_down_left_handler(screen, position, event);
+  }
+}
+
+void screen_event_mouse_down_right_handler(Screen* screen, Position* position, SDL_Event event)
+{
+  if(pixels_inside_rect(screen->board.rect, event.button.x, event.button.y))
+  {
+    screen_board_down_right_handler(screen, position, event);
+  }
+}
+
+void screen_event_mouse_down_handler(Screen* screen, Position* position, SDL_Event event)
+{
+  switch(event.button.button)
+  {
+    case SDL_BUTTON_LEFT:
+      screen_event_mouse_down_left_handler(screen, position, event);
+      break;
+
+    case SDL_BUTTON_RIGHT:
+      screen_event_mouse_down_right_handler(screen, position, event);
+      break;
+  }
+}
+
+void screen_event_mouse_up_left_handler(Screen* screen, Position* position, SDL_Event event)
+{
+  if(pixels_inside_rect(screen->board.rect, event.button.x, event.button.y))
+  {
+    screen_board_up_left_handler(screen, position, event);
+  }
 }
 
 void screen_event_mouse_up_right_handler(Screen* screen, Position* position, SDL_Event event)
 {
-  Square square = screen_pixels_square(screen->board.rect, event.button.x, event.button.y);
-
-  if(screen->board.meta.rightHoldingSquare != SQUARE_NONE && square != SQUARE_NONE)
+  if(pixels_inside_rect(screen->board.rect, event.button.x, event.button.y))
   {
-    if(screen->board.meta.rightHoldingSquare == square)
-    {
-      screen_board_square_mark(screen, square);
-    }
-    else screen_board_arrow_create(screen, screen->board.meta.rightHoldingSquare, square);
+    screen_board_up_right_handler(screen, position, event);
   }
-
-  screen->board.meta.rightHoldingSquare = SQUARE_NONE;
 }
 
 void screen_event_mouse_up_handler(Screen* screen, Position* position, SDL_Event event)
