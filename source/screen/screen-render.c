@@ -1,4 +1,4 @@
-#include "../engine.h"
+#include "../logic.h"
 #include "../screen.h"
 
 extern bool texture_rect_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect destRect);
@@ -26,11 +26,11 @@ void screen_board_render(Screen screen)
     screen_texture_square_render(screen.renderer, MOVED_SQUARE_TEXTURE, screen.board.rect, screen.board.meta.grabbedSquare);
   }
 
-  texture_rect_render(screen.renderer, screen.board.textures.moves, screen.board.rect);
-
   texture_rect_render(screen.renderer, screen.board.textures.marks, screen.board.rect);
 
   texture_rect_render(screen.renderer, screen.board.textures.pieces, screen.board.rect);
+
+  texture_rect_render(screen.renderer, screen.board.textures.moves, screen.board.rect);
 
   texture_rect_render(screen.renderer, screen.board.textures.arrows, screen.board.rect);
 

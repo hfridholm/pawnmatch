@@ -15,6 +15,7 @@ SDL_Texture* MARK_SQUARE_TEXTURE;
 SDL_Texture* CHECK_SQUARE_TEXTURE;
 SDL_Texture* MOVE_SQUARE_TEXTURE;
 SDL_Texture* HOVER_SQUARE_TEXTURE;
+SDL_Texture* CAPTURE_SQUARE_TEXTURE;
 
 SDL_Texture* ARROW_HEAD_TEXTURE;
 SDL_Texture* ARROW_BODY_TEXTURE;
@@ -62,6 +63,8 @@ bool other_textures_load(SDL_Renderer* renderer)
   
   image_texture_load(&MOVE_SQUARE_TEXTURE, renderer, "../source/screen/images/move-square.png");
   
+  image_texture_load(&CAPTURE_SQUARE_TEXTURE, renderer, "../source/screen/images/capture-square.png");
+  
   image_texture_load(&CHECK_SQUARE_TEXTURE, renderer, "../source/screen/images/check-square.png");
   
   image_texture_load(&HOVER_SQUARE_TEXTURE, renderer, "../source/screen/images/hover-square.png");
@@ -82,6 +85,8 @@ void other_textures_destroy(void)
   texture_destroy(&MARK_SQUARE_TEXTURE);
 
   texture_destroy(&MOVE_SQUARE_TEXTURE);
+
+  texture_destroy(&CAPTURE_SQUARE_TEXTURE);
 
   texture_destroy(&CHECK_SQUARE_TEXTURE);
 

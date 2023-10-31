@@ -1,4 +1,4 @@
-#include "../engine.h"
+#include "../logic.h"
 
 int board_bit_amount(U64 bitboard)
 {

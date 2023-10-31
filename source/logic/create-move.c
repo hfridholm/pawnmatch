@@ -1,4 +1,4 @@
-#include "../engine.h"
+#include "../logic.h"
 
 bool ident_capture_move(U64 boards[12], Square targetSquare)
 {

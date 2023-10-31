@@ -1,4 +1,4 @@
-#include "../engine.h"
+#include "../logic.h"
 #include "../screen.h"
 
 extern Square screen_pixels_square(SDL_Rect boardRect, int width, int height);

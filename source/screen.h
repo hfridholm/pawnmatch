@@ -1,7 +1,8 @@
 #ifndef SCREEN_H
 #define SCREEN_H
 
-#include "engine.h"
+#include "logic.h"
+#include "debug.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -57,10 +58,6 @@ typedef struct
   ScreenBoard board;
 }
 Screen;
-
-extern void info_print(char* format, ...);
-
-extern void error_print(char* format, ...);
 
 extern bool sdl_drivers_init();
 

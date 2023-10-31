@@ -26,6 +26,7 @@ extern SDL_Texture* MOVED_SQUARE_TEXTURE;
 extern SDL_Texture* MARK_SQUARE_TEXTURE;
 extern SDL_Texture* CHECK_SQUARE_TEXTURE;
 extern SDL_Texture* MOVE_SQUARE_TEXTURE;
+extern SDL_Texture* CAPTURE_SQUARE_TEXTURE;
 
 // The texture should be the same dimensions as the board
 bool marks_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, U64 marks)
@@ -186,9 +187,14 @@ bool moves_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int wid
 
     Move move = create_move(position.boards, square, index);
 
+    // En passant is legal even if it should not be
     if(move_fully_legal(position, move))
     {
-      texture_square_render(renderer, MOVE_SQUARE_TEXTURE, width, height, index);
+      if(BOARD_SQUARE_GET(position.covers[SIDE_BOTH], index))
+      {
+        texture_square_render(renderer, CAPTURE_SQUARE_TEXTURE, width, height, index);
+      }
+      else texture_square_render(renderer, MOVE_SQUARE_TEXTURE, width, height, index);
     }
 
     pieceLookupAttacks = BOARD_SQUARE_POP(pieceLookupAttacks, index);

@@ -8,18 +8,8 @@ extern void screen_board_base_textures_load(SDL_Renderer* renderer);
 
 extern void screen_board_textures_destroy(ScreenBoardTextures* boardTextures);
 
-// #include <stdarg.h>
-// https://www.geeksforgeeks.org/variadic-functions-in-c/
+extern bool squares_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height);
 
-void error_print(char* format, ...)
-{
-  fprintf(stderr, "[ ERROR ]: %s\n", format);
-}
-
-void info_print(char* format, ...)
-{
-  fprintf(stdout, "[ INFO ]: %s\n", format);
-}
 
 bool window_create(SDL_Window** window, int width, int height, const char title[])
 {
@@ -76,6 +66,15 @@ void screen_board_meta_init(ScreenBoardMeta* screenBoardMeta)
 // This function should create a complete screen, so it can be used directly
 bool screen_create(Screen* screen, int width, int height, const char title[])
 {
+  if(!sdl_drivers_init())
+  {
+    sdl_drivers_quit();
+
+    error_print("Failed to initialize SDL drivers");
+    
+    return 1;
+  }
+
   if(!window_create(&screen->window, width, height, title))
   {
     return false;
@@ -101,6 +100,11 @@ bool screen_create(Screen* screen, int width, int height, const char title[])
 
   background_base_textures_load(screen->renderer);
 
+
+  background_texture_create(&screen->backgroundTexture, screen->renderer, screen->width, screen->height);
+
+  squares_texture_create(&screen->board.textures.squares, screen->renderer, screen->board.rect.w, screen->board.rect.h);
+
   info_print("Created Screen");
 
   return true;
@@ -120,6 +124,8 @@ void screen_destroy(Screen* screen)
   renderer_destroy(&screen->renderer);
 
   window_destroy(&screen->window);
+
+  sdl_drivers_quit();
 
   info_print("Destroyed Screen");
 }

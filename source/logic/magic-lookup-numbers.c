@@ -1,4 +1,4 @@
-#include "../engine.h"
+#include "../logic.h"
 
 #include "random-number.h"
 #include "bitboard-manipulation.h"

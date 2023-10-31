@@ -1,4 +1,4 @@
-#include "../engine.h"
+#include "../logic.h"
 
 #include "engine-values.h"
 #include "bitboard-manipulation.h"

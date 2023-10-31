@@ -1,29 +1,19 @@
-#include "engine.h"
+#include "logic.h"
 #include "screen.h"
+#include "engine.h"
+#include "debug.h"
+
+#include <pthread.h>
 
 const unsigned int FRAMES_PER_SECOND = 60;
 
 const unsigned int FRAME_TICKS = 1000 / FRAMES_PER_SECOND;
 
-extern SDL_Rect board_rect(int screenWidth, int screenHeight);
- 
-extern Square screen_pixels_square(SDL_Rect boardRect, int width, int height);
-
-extern bool texture_rect_render(SDL_Renderer* renderer, SDL_Texture* texture, SDL_Rect destRect);
-
-extern bool texture_pixels_render(SDL_Renderer* renderer, SDL_Texture* texture, int x, int y, int width, int height);
-
-extern bool texture_pixels_center_render(SDL_Renderer* renderer, SDL_Texture* texture, int x, int y, int width, int height);
-
 extern SDL_Texture* PIECE_TEXTURES[12];
 
 extern void screen_destroy(Screen* screen);
 
-extern Move create_move(U64 boards[12], Square sourceSquare, Square targetSquare);
-
 extern void screen_board_textures_create(ScreenBoardTextures* boardTextures, Screen screen, Position position);
-
-extern bool image_texture_load(SDL_Texture** texture, SDL_Renderer* renderer, const char filePath[]);
 
 
 U64 create_board_line(Square source, Square target)
@@ -90,9 +80,19 @@ const char FEN_START[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0
 
 extern SDL_Texture* HOVER_SQUARE_TEXTURE;
 
-extern void screen_board_arrow_create(Screen* screen, Square sourceSquare, Square targetSquare);
-
 extern SDL_Texture* MARK_SQUARE_TEXTURE;
+
+
+Position position;
+
+void* engine_routine(void* args)
+{
+  info_print("Engine routine running");
+
+  // 1.  
+
+  return NULL;
+}
 
 int main(int argc, char* argv[])
 {
@@ -100,42 +100,35 @@ int main(int argc, char* argv[])
 
   init_all();
 
-  Position position;
   parse_fen(&position, FEN_START);
 
 
-  if(!sdl_drivers_init())
-  {
-    sdl_drivers_quit();
-
-    error_print("Failed to initialize SDL drivers");
-    
-    return 1;
-  }
-
-
   Screen screen;
-
-  if(!screen_create(&screen, 600, 500, "PawnMatch"))
+  if(!screen_create(&screen, 800, 600, "PawnMatch"))
   {
-    sdl_drivers_quit();
-
     error_print("Failed to create screen");
 
     return 1;
   }
 
-
-  background_texture_create(&screen.backgroundTexture, screen.renderer, screen.width, screen.height);
-
   screen_board_textures_create(&screen.board.textures, screen, position);
+  screen_display(screen);
 
   screen_display(screen);
 
 
+  pthread_t engineThread;
+
+  if(pthread_create(&engineThread, NULL, &engine_routine, NULL) != 0)
+  {
+    error_print("Could not create engine thread");
+  }
+  else info_print("Created engine thread");
+
+
+
 
   Uint32 lastTicks = SDL_GetTicks();
-
 
   SDL_Event event;
 
@@ -161,9 +154,14 @@ int main(int argc, char* argv[])
   while(event.type != SDL_QUIT);
 
 
+  if(pthread_join(engineThread, NULL) != 0)
+  {
+    error_print("Could not join engine thread");
+  }
+  else info_print("Joined engine thread");
+
+
   screen_destroy(&screen);
 
-  sdl_drivers_quit();
-  
   return 0;
 }

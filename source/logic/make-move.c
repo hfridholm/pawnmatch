@@ -1,4 +1,4 @@
-#include "../engine.h"
+#include "../logic.h"
 
 void make_castle_move(Position* position, Move move)
 {
