@@ -180,6 +180,10 @@ bool moves_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int wid
   // This includes white pawn movement
   pieceLookupAttacks |= (1ULL << (square - BOARD_FILES)) | (1ULL << (square - BOARD_FILES * 2));
 
+
+  // This includes king castle movement
+  pieceLookupAttacks |= (1ULL << (square + 2)) | (1ULL << (square - 2));
+
   int loopCount = 0;
   while(pieceLookupAttacks && loopCount++ < BOARD_SQUARES)
   {

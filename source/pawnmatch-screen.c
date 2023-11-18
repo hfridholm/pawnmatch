@@ -106,7 +106,7 @@ void* engine_routine(void* args)
 int main(int argc, char* argv[])
 {
   // https://wiki.libsdl.org/SDL2/SDL_RenderFillRect
-
+  
   init_all();
 
   parse_fen(&position, FEN_START);

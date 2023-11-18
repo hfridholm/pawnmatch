@@ -40,8 +40,6 @@ bool engine_connect(int sockfd)
     memset(buffer, '\0', sizeof(buffer));
 
     if(!engine_read(sockfd, buffer, sizeof(buffer))) return false;
-
-    printf("buffer: (%s)\n", buffer);
   }
   while(strcmp(buffer, "uciok"));
 
