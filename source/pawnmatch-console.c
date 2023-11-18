@@ -147,56 +147,6 @@ bool engine2_open(Engine* engine2)
   }
   return true;
 }
-
-U64 create_board_line(Square source, Square target)
-{
-  U64 board = 0ULL;
-
-  int sourceRank = (source / BOARD_FILES);
-  int sourceFile = (source % BOARD_FILES);
-
-  int targetRank = (target / BOARD_FILES);
-  int targetFile = (target % BOARD_FILES);
-
-  int rankOffset = (targetRank - sourceRank);
-  int fileOffset = (targetFile - sourceFile);
-
-  int rankFactor = (rankOffset > 0) ? +1 : -1;
-  int fileFactor = (fileOffset > 0) ? +1 : -1;
-
-  int absRankOffset = (rankOffset * rankFactor);
-  int absFileOffset = (fileOffset * fileFactor);
-
-  // If the move is not diagonal nor straight, return empty board;
-  if(!(absRankOffset == absFileOffset) && !((absRankOffset == 0) ^ (absFileOffset == 0))) return 0ULL;
-
-  int rankScalor = (rankOffset == 0) ? 0 : rankFactor;
-  int fileScalor = (fileOffset == 0) ? 0 : fileFactor;
-
-  for(int rank = sourceRank, file = sourceFile; (rank != targetRank || file != targetFile); rank += rankScalor, file += fileScalor)
-  {
-    Square square = (rank * BOARD_FILES) + file;
-
-    if(square == source || square == target) continue;
-
-    board = BOARD_SQUARE_SET(board, square);
-  }
-  return board;
-}
-
-void init_board_lookup_lines(void)
-{
-  for(Square sourceSquare = A8; sourceSquare <= H1; sourceSquare++)
-  {
-    for(Square targetSquare = A8; targetSquare <= H1; targetSquare++)
-    {
-      U64 boardLines = create_board_line(sourceSquare, targetSquare);
-
-      BOARD_LOOKUP_LINES[sourceSquare][targetSquare] = boardLines;
-    }
-  }
-}
-
 bool stdin_string(char* string, const char prompt[])
 {
   fflush(stdin);
@@ -204,50 +154,6 @@ bool stdin_string(char* string, const char prompt[])
   char buffer[1024];
   if(fgets(buffer, sizeof(buffer), stdin) == NULL) return false;
   return sscanf(buffer, "%[^\n]%*c", string);
-}
-
-Square parse_square(const char squareString[])
-{
-  int file = squareString[0] - 'a';
-  int rank = BOARD_RANKS - (squareString[1] - '0');
-
-  if(!(file >= 0 && file < BOARD_FILES) || !(rank >= 0 && rank < BOARD_RANKS)) return SQUARE_NONE;
-
-  return (rank * BOARD_FILES) + file;
-}
-
-Move parse_move(const char moveString[])
-{
-  Move parseMove = 0;
-
-  Square sourceSquare = parse_square(moveString += 0);
-  if(sourceSquare == SQUARE_NONE) return 0;
-
-  Square targetSquare = parse_square(moveString += 2);
-  if(targetSquare == SQUARE_NONE) return 0;
-
-  parseMove |= MOVE_SET_SOURCE(sourceSquare);
-  parseMove |= MOVE_SET_TARGET(targetSquare);
-
-  Piece promotePiece = SYMBOL_PIECES[(unsigned char) *moveString];
-
-  if(promotePiece != PIECE_WHITE_PAWN) parseMove |= MOVE_SET_PROMOTE(promotePiece);
-
-  return parseMove;
-}
-
-char* move_string(char* moveString, Move move)
-{
-  const char* sourceString = SQUARE_STRINGS[MOVE_GET_SOURCE(move)];
-  const char* targetString = SQUARE_STRINGS[MOVE_GET_TARGET(move)];
-
-  Piece promotePiece = MOVE_GET_PROMOTE(move);
-
-  if(promotePiece == PIECE_WHITE_PAWN) sprintf(moveString, "%s%s", sourceString, targetString);
-
-  else sprintf(moveString, "%s%s%c", sourceString, targetString, PIECE_SYMBOLS[promotePiece]);
-
-  return moveString;
 }
 
 void init_all(void)
@@ -350,42 +256,6 @@ Move input_engine_move(Engine engine, Position position, MoveArray moveArray, Cl
   Move move = parse_move(readString + 9);
 
   return complete_move(position.boards, move);
-}
-
-void position_print(Position position)
-{
-  printf("\n");
-  for(int rank = 0; rank < BOARD_RANKS; rank++)
-  {
-    for(int file = 0; file < BOARD_FILES; file++)
-    {
-      Square square = (rank * BOARD_FILES) + file;
-
-      if(!file) printf("%d ", BOARD_RANKS - rank);
-
-      int printPiece = -1;
-
-      for(Piece piece = PIECE_WHITE_PAWN; piece <= PIECE_BLACK_KING; piece++)
-      {
-        if(BOARD_SQUARE_GET(position.boards[piece], square))
-          printPiece = piece;
-      }
-      printf("%c ", (printPiece != -1) ? PIECE_SYMBOLS[printPiece] : '.');
-    }
-    printf("\n");
-  }
-  printf("  A B C D E F G H\n\n");
-
-  printf("Side: %s\n", (position.side == SIDE_WHITE) ? "white" : "black");
-
-  printf("Enpassant: %s\n", (position.passant != SQUARE_NONE) ? SQUARE_STRINGS[position.passant] : "no");
-
-  printf("Castling: %c%c%c%c\n\n",
-    (position.castle & CASTLE_WHITE_KING) ? 'K' : '-',
-    (position.castle & CASTLE_WHITE_QUEEN) ? 'Q' : '-',
-    (position.castle & CASTLE_BLACK_KING) ? 'k' : '-',
-    (position.castle & CASTLE_BLACK_QUEEN) ? 'q' : '-'
-  );
 }
 
 Move input_player_move(Player player, Position position)
@@ -679,9 +549,16 @@ void engine_vs_engine(void)
 
 int main(int argc, char* argv[])
 {
-  init_all();
+  Position position;
+  parse_fen(&position, FEN_START);
 
-  player_vs_engine();
+  char fen[128];
+  
+  memset(fen, '\0', sizeof(fen));
+
+  fen_create(fen, position);
+
+  printf("fen: (%s)\n", fen);
 
   return 0;
 }

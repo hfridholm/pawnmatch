@@ -136,6 +136,8 @@ extern void make_move(Position* position, Move move);
 
 extern bool parse_fen(Position* position, const char fenString[]);
 
+extern bool fen_create(char* fen, Position position);
+
 extern Piece boards_square_piece(U64 boards[12], Square square);
 
 extern U64 piece_lookup_attacks(Position position, Square square);
@@ -145,6 +147,8 @@ extern int board_ls1b_index(U64 bitboard);
 extern U64 BOARD_LOOKUP_LINES[BOARD_SQUARES][BOARD_SQUARES];
 
 extern void init_piece_lookup_attacks();
+
+extern void init_board_lookup_lines(void);
 
 extern void init_piece_lookup_masks();
 

@@ -21,48 +21,11 @@ struct sockaddr_in sockaddr_create(int sockfd, const char address[], int port)
   return addr;
 }
 
-bool socket_bind(int sockfd, const char address[], int port)
-{
-  struct sockaddr_in addr = sockaddr_create(sockfd, address, port);
-
-  if(bind(sockfd, (struct sockaddr*) &addr, sizeof(addr)) == -1)
-  {
-    error_print("Could not bind socket: %s", strerror(errno));
-
-    return false;
-  }
-  return true;
-}
-
-bool socket_listen(int sockfd, int backlog)
-{
-  if(listen(sockfd, backlog) == -1)
-  {
-    error_print("Could not listen: %s", strerror(errno));
-
-    return false;
-  }
-  return true;
-}
-
 bool socket_create(int* sockfd)
 {
   if((*sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
   {
     error_print("Could not create socket: %s", strerror(errno));
-
-    return false;
-  }
-  return true;
-}
-
-bool server_socket_create(int* sockfd, const char address[], int port, int backlog)
-{
-  if(!socket_create(sockfd)) return false;
-
-  if(!socket_bind(*sockfd, address, port) || !socket_listen(*sockfd, backlog))
-  {
-    close(*sockfd);
 
     return false;
   }
@@ -89,21 +52,6 @@ bool client_socket_create(int* sockfd, const char address[], int port)
   if(!socket_connect(*sockfd, address, port))
   {
     close(*sockfd);
-
-    return false;
-  }
-  return true;
-}
-
-bool socket_accept(int* acceptfd, int sockfd, const char address[], int port)
-{
-  struct sockaddr_in sockaddr = sockaddr_create(sockfd, address, port);
-
-  int addrlen = sizeof(sockaddr);
-
-  if((*acceptfd = accept(sockfd, (struct sockaddr*) &sockaddr, (socklen_t*) &addrlen)) == -1)
-  {
-    error_print("Could not accept: %s", strerror(errno));
 
     return false;
   }
