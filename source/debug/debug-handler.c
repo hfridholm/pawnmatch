@@ -90,7 +90,7 @@ int format_args_string(char* buffer, const char* format, va_list args)
   return 0; // Implement actual status codes
 }
 
-int debug_print(FILE* stream, const char* title, const char* format, va_list args)
+int debug_args_print(FILE* stream, const char* title, const char* format, va_list args)
 {
   char timeString[32];
   memset(timeString, '\0', sizeof(timeString));
@@ -118,13 +118,26 @@ int format_string(char* buffer, const char* format, ...)
   return status;
 }
 
+int debug_print(FILE* stream, const char* title, const char* format, ...)
+{
+  va_list args;
+
+  va_start(args, format);
+
+  int status = debug_args_print(stream, title, format, args);
+
+  va_end(args);
+
+  return status;
+}
+
 int error_print(const char* format, ...)
 {
   va_list args;
 
   va_start(args, format);
 
-  int status = debug_print(stderr, "ERROR", format, args);
+  int status = debug_args_print(stderr, "ERROR", format, args);
 
   va_end(args);
 
@@ -137,7 +150,7 @@ int info_print(const char* format, ...)
 
   va_start(args, format);
 
-  int status = debug_print(stdout, "INFO", format, args);
+  int status = debug_args_print(stdout, "INFO", format, args);
 
   va_end(args);
 

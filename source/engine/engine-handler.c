@@ -52,6 +52,9 @@ void engine_close(int* sockfd)
 {
   engine_write(*sockfd, "quit");
 
+  // Let the reciever get the message
+  usleep(100000);
+
   socket_close(sockfd);
 }
 

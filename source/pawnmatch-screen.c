@@ -47,24 +47,26 @@ int engineSocket = -1;
 bool engine_move_get(Move* move, Position position)
 {
   char positionString[256];
-
   uci_position_string(positionString, position);
 
-  engine_write(engineSocket, positionString);
+  if(!engine_write(engineSocket, positionString)) return false;
 
   char goString[64];
-  sprintf(goString, "go wtime %ld btime %ld winc %d binc %d", cclock.wtime, cclock.btime, cclock.winc, cclock.binc);
+  uci_go_string(goString, cclock);
 
-  engine_write(engineSocket, goString);
+  if(!engine_write(engineSocket, goString)) return false;
 
+  char bestmoveString[64];
 
-  char bestmoveString[16];
-  
-  engine_read(engineSocket, bestmoveString, sizeof(bestmoveString));
+  do
+  {
+    memset(bestmoveString, '\0', sizeof(bestmoveString));
 
-  Move bestmove = uci_bestmove_parse(bestmoveString);
+    if(!engine_read(engineSocket, bestmoveString, sizeof(bestmoveString))) return false;
+  }
+  while(strncmp(bestmoveString, "bestmove", 8));
 
-  bestmove = complete_move(position.boards, bestmove);
+  Move bestmove = uci_bestmove_parse(position.boards, bestmoveString + 9);
 
   if(bestmove == MOVE_NONE) return false;
 

@@ -1,2 +1,2 @@
 # Notes
-- Castle move options do not show right now
+- Change string arguments from char[] to char*

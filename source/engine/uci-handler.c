@@ -44,11 +44,11 @@ char* move_string(char* moveString, Move move)
   return moveString;
 }
 
-Move uci_bestmove_parse(char bestmoveString[])
+Move uci_bestmove_parse(U64 boards[], char* bestmoveString)
 {
-  if(strncmp(bestmoveString, "bestmove", 8)) return MOVE_NONE;
+  Move bestmove = move_parse(bestmoveString);
 
-  return move_parse(bestmoveString + 9);
+  return complete_move(boards, bestmove);
 }
 
 char* uci_position_string(char* positionString, Position position)
@@ -61,4 +61,11 @@ char* uci_position_string(char* positionString, Position position)
   sprintf(positionString, "position fen %s", fen);
 
   return positionString;
+}
+
+char* uci_go_string(char* goString, Clock cclock)
+{
+  sprintf(goString, "go wtime %ld btime %ld winc %d binc %d", cclock.wtime, cclock.btime, cclock.winc, cclock.binc);
+
+  return goString; 
 }

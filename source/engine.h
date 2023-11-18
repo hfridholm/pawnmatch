@@ -14,8 +14,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-extern Move uci_bestmove_parse(char bestmoveString[]);
-
 extern bool engine_setup(int* sockfd, const char address[], int port);
 
 extern void engine_close(int* sockfd);
@@ -26,7 +24,9 @@ extern bool engine_write(int sockfd, const char string[]);
 
 extern char* uci_position_string(char* positionString, Position position);
 
-extern Move uci_bestmove_parse(char bestmoveString[]);
+extern char* uci_go_string(char* goString, Clock cclock);
+
+extern Move uci_bestmove_parse(U64 boards[], char* bestmoveString);
 
 extern char* move_string(char* moveString, Move move);
 
