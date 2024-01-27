@@ -105,25 +105,9 @@ void* engine_routine(void* args)
   return NULL;
 }
 
-int main(int argc, char* argv[])
+/*
+void foo()
 {
-  // https://wiki.libsdl.org/SDL2/SDL_RenderFillRect
-  
-  init_all();
-
-  parse_fen(&position, FEN_START);
-  cclock = (Clock) {60000, 60000, 0, 0};
-
-  if(!screen_create(&screen, 800, 600, "PawnMatch"))
-  {
-    error_print("Failed to create screen");
-
-    return 1;
-  }
-
-  screen_board_textures_create(&screen.board.textures, screen, position);
-  screen_display(screen);
-  
   char engineAddress[] = "127.0.0.1";
   int enginePort = 5555;
 
@@ -199,8 +183,63 @@ int main(int argc, char* argv[])
   else info_print("Joined engine thread");
 
   engine_close(&engineSocket);
+}
 
+void goo()
+{
+  parse_fen(&position, FEN_START);
+  cclock = (Clock) {60000, 60000, 0, 0};
 
+  foo(screen, position, clock);
+}
+*/
+
+void hoo(Screen screen)
+{
+  bool gameIsRunning = true;
+
+  Uint32 lastTicks = SDL_GetTicks();
+
+  SDL_Event event;
+
+  while(gameIsRunning)
+  {
+    while(SDL_PollEvent(&event))
+    {
+      // screen_event_handler
+
+      if(event.type == SDL_QUIT) gameIsRunning = false;
+      
+      usleep(1000);
+    }
+
+    Uint32 currentTicks = SDL_GetTicks();
+
+    if(currentTicks - lastTicks >= FRAME_TICKS)
+    {
+      lastTicks = currentTicks;
+
+      screen_display(screen);
+    }
+  }
+}
+
+int main(int argc, char* argv[])
+{
+  init_all();
+
+  if(!screen_create(&screen, 800, 600, "PawnMatch"))
+  {
+    error_print("Failed to create screen");
+
+    return 1;
+  }
+
+  screen_board_textures_create(&screen.board.textures, screen, position);
+  screen_display(screen);
+
+  hoo(screen);
+  
   screen_destroy(&screen);
 
   return 0;

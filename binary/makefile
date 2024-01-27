@@ -75,3 +75,9 @@ DELETE_FILES := $(OBJECT_FOLDER)/*.o $(PROGRAMS)
 
 $(CLEAN_TARGET):
 	$(DELETE_COMMAND) $(DELETE_FLAGS) $(DELETE_FILES)
+
+# This is the list target
+LIST_TARGET := list
+
+$(LIST_TARGET):
+	$(info pawnmatch-console pawnmatch-screen)
