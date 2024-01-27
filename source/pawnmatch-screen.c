@@ -2,7 +2,6 @@
 #include "screen.h"
 #include "engine.h"
 #include "debug.h"
-#include "console.h"
 
 #include <pthread.h>
 

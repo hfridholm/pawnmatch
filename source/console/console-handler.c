@@ -1,5 +1,14 @@
 #include "../console.h"
 
+bool stdin_string(char* string, const char prompt[])
+{
+  fflush(stdin);
+  printf("%s", prompt);
+  char buffer[1024];
+  if(fgets(buffer, sizeof(buffer), stdin) == NULL) return false;
+  return sscanf(buffer, "%[^\n]%*c", string);
+}
+
 void position_print(Position position)
 {
   printf("\n");
