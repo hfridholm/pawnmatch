@@ -207,11 +207,11 @@ bool moves_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int wid
   return render_target_texture_render(texture, renderer);
 }
 
-void screen_board_textures_create(ScreenBoardTextures* boardTextures, Screen screen, Position position)
+void screen_board_textures_create(ScreenBoard* board, SDL_Renderer* renderer, Position position)
 {
-  squares_texture_create(&boardTextures->squares, screen.renderer, screen.board.rect.w, screen.board.rect.h);
+  squares_texture_create(&board->textures.squares, renderer, board->rect.w, board->rect.h);
 
-  pieces_texture_create(&boardTextures->pieces, screen.renderer, screen.board.rect.w, screen.board.rect.h, position, SQUARE_NONE);
+  pieces_texture_create(&board->textures.pieces, renderer, board->rect.w, board->rect.h, position, SQUARE_NONE);
 }
 
 void screen_board_textures_destroy(ScreenBoardTextures* boardTextures)

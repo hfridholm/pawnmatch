@@ -87,35 +87,53 @@ bool screen_create(Screen* screen, int width, int height, const char title[])
   screen->width = width;
   screen->height = height;
 
-  screen->board.rect = board_rect(screen->width, screen->height);
-
-  screen->board.textures = (ScreenBoardTextures) {0};
-
-  screen->backgroundTexture = NULL;
-
-  screen_board_meta_init(&screen->board.meta);
-
   // Loading base textures for the board
   screen_board_base_textures_load(screen->renderer);
 
   background_base_textures_load(screen->renderer);
 
 
-  background_texture_create(&screen->backgroundTexture, screen->renderer, screen->width, screen->height);
-
-  squares_texture_create(&screen->board.textures.squares, screen->renderer, screen->board.rect.w, screen->board.rect.h);
-
   info_print("Created Screen");
 
   return true;
 }
 
+bool screen_board_create(ScreenBoard* board, Screen screen)
+{
+  board->rect = board_rect(screen.width, screen.height);
+
+  board->textures = (ScreenBoardTextures) {0};
+
+  screen_board_meta_init(&board->meta);
+
+  squares_texture_create(&board->textures.squares, screen.renderer, board->rect.w, board->rect.h);
+
+  return true;
+}
+
+void screen_board_destroy(ScreenBoard* board)
+{
+  screen_board_textures_destroy(&board->textures);
+}
+
+bool screen_menu_board_create(ScreenMenuBoard* menu, Screen screen)
+{
+  background_texture_create(&menu->menu.background, screen.renderer, screen.width, screen.height);
+
+  screen_board_create(&menu->board, screen);
+
+  return true;
+}
+
+void screen_menu_board_destroy(ScreenMenuBoard* menu)
+{
+  texture_destroy(&menu->menu.background);
+
+  screen_board_destroy(&menu->board);
+}
+
 void screen_destroy(Screen* screen)
 {
-  texture_destroy(&screen->backgroundTexture);
-
-  screen_board_textures_destroy(&screen->board.textures);
-
   screen_board_base_textures_destroy();
 
   background_base_textures_destroy();

@@ -36,26 +36,72 @@ typedef struct
 
 typedef struct
 {
+  // Maybe add head struct for inheritance to abstract screen field struct
   SDL_Rect rect;
-  
   ScreenBoardTextures textures;
-
   ScreenBoardMeta meta;
 }
 ScreenBoard;
 
+typedef enum
+{
+  SMT_MAIN,
+  SMT_ENGINE,
+  SMT_PLAYER,
+  SMT_BOARD
+}
+ScreenMenuType;
+
+// This struct needs to first in every menu struct
 typedef struct
 {
-  int width, height;
+  ScreenMenuType type;
+  SDL_Texture* background;
+}
+ScreenMenu;
 
+typedef struct
+{
+  ScreenMenu menu; // Allows inheritance
+  ScreenBoard board;
+}
+ScreenMenuEngine;
+
+typedef struct
+{
+  ScreenMenu menu; // Allows inheritance
+  ScreenBoard board;
+}
+ScreenMenuPlayer;
+
+typedef struct
+{
+  ScreenMenu menu; // Allows inheritance
+  ScreenBoard board;
+}
+ScreenMenuBoard;
+
+typedef struct
+{
+  ScreenMenu menu; // Allows inheritance
+}
+ScreenMenuMain;
+
+typedef struct
+{
+  int x;
+  int y;
+}
+ScreenMouse;
+
+typedef struct
+{
+  int width;
+  int height;
   SDL_Window* window;
   SDL_Renderer* renderer;
-
-  int mouseX, mouseY;
-
-  SDL_Texture* backgroundTexture;
-
-  ScreenBoard board;
+  ScreenMouse mouse;
+  ScreenMenu* menu;
 }
 Screen;
 
@@ -116,5 +162,9 @@ extern bool texture_rect_texture(SDL_Texture** target, SDL_Renderer* renderer, S
 extern bool texture_pixels_texture(SDL_Texture** target, SDL_Renderer* renderer, SDL_Texture* source, int x, int y, int width, int height);
 
 extern bool arrow_straight_texture_create(SDL_Texture** texture, SDL_Renderer* renderer, int width, int height, Square source, Square target);
+
+extern void screen_menu_board_destroy(ScreenMenuBoard* menu);
+
+extern bool screen_menu_board_create(ScreenMenuBoard* menu, Screen screen);
 
 #endif // SCREEN_H

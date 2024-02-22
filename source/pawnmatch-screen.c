@@ -13,8 +13,6 @@ extern SDL_Texture* PIECE_TEXTURES[12];
 
 extern void screen_destroy(Screen* screen);
 
-extern void screen_board_textures_create(ScreenBoardTextures* boardTextures, Screen screen, Position position);
-
 
 void init_all(void)
 {
@@ -193,8 +191,14 @@ void goo()
 }
 */
 
-void hoo(Screen screen)
+void hoo()
 {
+  parse_fen(&position, FEN_START);
+
+  screen.menu = malloc(sizeof(ScreenMenuBoard));
+
+  screen_menu_board_create((ScreenMenuBoard*) screen.menu, screen);
+
   bool gameIsRunning = true;
 
   Uint32 lastTicks = SDL_GetTicks();
@@ -205,7 +209,7 @@ void hoo(Screen screen)
   {
     while(SDL_PollEvent(&event))
     {
-      // screen_event_handler
+      screen_event_handler(&screen, &position, event);
 
       if(event.type == SDL_QUIT) gameIsRunning = false;
       
@@ -221,6 +225,10 @@ void hoo(Screen screen)
       screen_display(screen);
     }
   }
+
+  screen_menu_board_destroy((ScreenMenuBoard*) screen.menu);
+
+  free(screen.menu);
 }
 
 int main(int argc, char* argv[])
@@ -234,10 +242,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  screen_board_textures_create(&screen.board.textures, screen, position);
-  screen_display(screen);
-
-  hoo(screen);
+  hoo();
   
   screen_destroy(&screen);
 

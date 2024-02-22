@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "console.h"
 
 void init_all(void)
 {
@@ -15,7 +16,13 @@ const char FEN_START[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0
 
 int main(int argc, char* argv[])
 {
+  initscr();
 
+  refresh();
+
+  getch();
+
+  endwin();
 
   return 0;
 }
